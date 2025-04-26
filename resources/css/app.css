@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] {
+    display: none;
+}
+
+
+@font-face {
+    font-family: "PolySansTrial";
+    src: url("/fonts/PolySansTrial-Neutral.otf") format("opentype");
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "PolySansTrial";
+    src: url("/fonts/PolySansTrial-NeutralItalic.otf") format("opentype");
+    font-weight: 400;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "PolySansTrial";
+    src: url("/fonts/PolySansTrial-Median.otf") format("opentype");
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "PolySansTrial";
+    src: url("/fonts/PolySansTrial-MedianItalic.otf") format("opentype");
+    font-weight: 500;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "PolySansTrial";
+    src: url("/fonts/PolySansTrial-Bulky.otf") format("opentype");
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "PolySansTrial";
+    src: url("/fonts/PolySansTrial-BulkyItalic.otf") format("opentype");
+    font-weight: 700;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "PolySansTrial";
+    src: url("/fonts/PolySansTrial-Slim.otf") format("opentype");
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "PolySansTrial";
+    src: url("/fonts/PolySansTrial-SlimItalic.otf") format("opentype");
+    font-weight: 300;
+    font-style: italic;
+}
+
+
+html, body{
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    font-family: "PolySansTrial", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+#ghost-cursor{
+    position:fixed;
+    width:30px;height:30px;
+    background:url('/images/cursor.webp') center/contain no-repeat;
+    pointer-events:none;
+    transform:translate(-50%,-50%);
+    transition:transform .08s linear;      /* movimento fluido */
+    z-index:9999;
+  }
+  /* facoltativo: alone di click */
+  #ghost-click{
+    position:fixed;
+    width:40px;height:40px;
+    border:2px solid rgba(0,0,255,.5);
+    border-radius:50%;
+    pointer-events:none;
+    transform:translate(-50%,-50%);
+  }
+  @keyframes click-anim{
+    from{transform:translate(-50%,-50%) scale(.7);opacity:1}
+    to  {transform:translate(-50%,-50%) scale(1.6);opacity:0}
+  }
