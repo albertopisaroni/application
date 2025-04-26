@@ -14,7 +14,7 @@ use App\Services\LeadAnalyzer;
  *
  * @hideFromAPIDocumentation
  */
-Route::get('/', fn () => redirect('https://docs.newopay.it'))->withoutMiddleware(ApiTokenMiddleware::class);
+Route::get('/', fn () => redirect(config('app.docs_url')))->withoutMiddleware(ApiTokenMiddleware::class);
 
 /**
  * Questo endpoint non verrà documentato.

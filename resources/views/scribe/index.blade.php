@@ -8,7 +8,7 @@
         <title>Benvenuto su Newo | Documentazione</title>
         
         <link href="https://fonts.googleapis.com/css?family=PT+Sans&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="https://app.newopay.it/static/docs.css" media="screen">
+        <link rel="stylesheet" href="https://app.newo.io/static/docs.css" media="screen">
         <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js"></script>
 
         <!-- Google tag (gtag.js) -->
@@ -54,7 +54,7 @@
         </script>
 
                     <script>
-                var tryItOutBaseUrl = "https://api.newopay.it";
+                var tryItOutBaseUrl = "https://api.newo.io";
                 var useCsrf = Boolean();
                 var csrfUrl = "/sanctum/csrf-cookie";
             </script>
@@ -308,7 +308,7 @@
     <div class="sl-flex sl-items-center sl-mb-5 sl-ml-4">
                     <div class="sl-inline sl-overflow-x-hidden sl-overflow-y-hidden sl-mr-3 sl-rounded-lg"
                  style="background-color: transparent;">
-                <img src="https://app.newopay.it/images/logo-docs.svg" width="160" alt="Benvenuto su Newo | Documentazione">
+                <img src="https://app.newo.io/images/logo-docs.svg" width="160" alt="Benvenuto su Newo | Documentazione">
             </div>
             </div>
 
@@ -400,7 +400,7 @@
                 <div class="sl-prose sl-markdown-viewer sl-my-4">
                     <h1 id="introduzione">Introduzione</h1>
 <aside>
-    <strong>URL base</strong>: <code>https://api.newopay.it</code>
+    <strong>URL base</strong>: <code>https://api.newo.io</code>
 </aside>
 <pre><code>This documentation aims to provide all the information you need to work with our API.
 
@@ -437,7 +437,7 @@ Ogni richiesta alle API deve includere un'intestazione:</p>
         </div>
 
         <div class="sl-relative">
-            <div title="https://api.newopay.it/clients/store/manual"
+            <div title="https://api.newo.io/clients/store/manual"
                      class="sl-stack sl-stack--horizontal sl-stack--3 sl-inline-flex sl-flex-row sl-items-center sl-max-w-full sl-font-mono sl-py-2 sl-pr-4 sl-bg-canvas-50 sl-rounded-lg"
                 >
                                             <div class="sl-text-lg sl-font-semibold sl-px-2.5 sl-py-1 sl-text-on-primary sl-rounded-lg"
@@ -447,7 +447,7 @@ Ogni richiesta alle API deve includere un'intestazione:</p>
                         </div>
                                         <div class="sl-flex sl-overflow-x-hidden sl-text-lg sl-select-all">
                         <div dir="rtl"
-                             class="sl-overflow-x-hidden sl-truncate sl-text-muted">https://api.newopay.it</div>
+                             class="sl-overflow-x-hidden sl-truncate sl-text-muted">https://api.newo.io</div>
                         <div class="sl-flex-1 sl-font-semibold">/clients/store/manual</div>
                     </div>
 
@@ -1036,7 +1036,7 @@ Controlla la console degli strumenti di sviluppo per ulteriori dettagli.</p>
                                     <div class="sl-px-0 sl-py-1">
                                         <div style="max-height: 400px;" class="sl-overflow-y-auto sl-rounded">
                                             <pre><code class="language-bash">curl --request POST \
-    "https://api.newopay.it/clients/store/manual" \
+    "https://api.newo.io/clients/store/manual" \
     --header "Authorization: Bearer {YOUR_API_TOKEN}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -1061,7 +1061,7 @@ Controlla la console degli strumenti di sviluppo per ulteriori dettagli.</p>
                                     <div class="sl-px-0 sl-py-1">
                                         <div style="max-height: 400px;" class="sl-overflow-y-auto sl-rounded">
                                             <pre><code class="language-javascript">const url = new URL(
-    "https://api.newopay.it/clients/store/manual"
+    "https://api.newo.io/clients/store/manual"
 );
 
 const headers = {
@@ -1096,7 +1096,7 @@ fetch(url, {
                                     <div class="sl-px-0 sl-py-1">
                                         <div style="max-height: 400px;" class="sl-overflow-y-auto sl-rounded">
                                             <pre><code class="language-php">$client = new \GuzzleHttp\Client();
-$url = 'https://api.newopay.it/clients/store/manual';
+$url = 'https://api.newo.io/clients/store/manual';
 $response = $client-&gt;post(
     $url,
     [
@@ -1131,7 +1131,7 @@ print_r(json_decode((string) $body));</code></pre>                              
                                             <pre><code class="language-python">import requests
 import json
 
-url = 'https://api.newopay.it/clients/store/manual'
+url = 'https://api.newo.io/clients/store/manual'
 payload = {
     "name": "consequatur",
     "email": "qkunze@example.com",
@@ -1217,7 +1217,7 @@ response.json()</code></pre>                                        </div>
         </div>
 
         <div class="sl-relative">
-            <div title="https://api.newopay.it/clients/store/automatic"
+            <div title="https://api.newo.io/clients/store/automatic"
                      class="sl-stack sl-stack--horizontal sl-stack--3 sl-inline-flex sl-flex-row sl-items-center sl-max-w-full sl-font-mono sl-py-2 sl-pr-4 sl-bg-canvas-50 sl-rounded-lg"
                 >
                                             <div class="sl-text-lg sl-font-semibold sl-px-2.5 sl-py-1 sl-text-on-primary sl-rounded-lg"
@@ -1227,7 +1227,7 @@ response.json()</code></pre>                                        </div>
                         </div>
                                         <div class="sl-flex sl-overflow-x-hidden sl-text-lg sl-select-all">
                         <div dir="rtl"
-                             class="sl-overflow-x-hidden sl-truncate sl-text-muted">https://api.newopay.it</div>
+                             class="sl-overflow-x-hidden sl-truncate sl-text-muted">https://api.newo.io</div>
                         <div class="sl-flex-1 sl-font-semibold">/clients/store/automatic</div>
                     </div>
 
@@ -1556,7 +1556,7 @@ Controlla la console degli strumenti di sviluppo per ulteriori dettagli.</p>
                                     <div class="sl-px-0 sl-py-1">
                                         <div style="max-height: 400px;" class="sl-overflow-y-auto sl-rounded">
                                             <pre><code class="language-bash">curl --request POST \
-    "https://api.newopay.it/clients/store/automatic" \
+    "https://api.newo.io/clients/store/automatic" \
     --header "Authorization: Bearer {YOUR_API_TOKEN}" \
     --header "Content-Type: application/json" \
     --header "Accept: application/json" \
@@ -1571,7 +1571,7 @@ Controlla la console degli strumenti di sviluppo per ulteriori dettagli.</p>
                                     <div class="sl-px-0 sl-py-1">
                                         <div style="max-height: 400px;" class="sl-overflow-y-auto sl-rounded">
                                             <pre><code class="language-javascript">const url = new URL(
-    "https://api.newopay.it/clients/store/automatic"
+    "https://api.newo.io/clients/store/automatic"
 );
 
 const headers = {
@@ -1596,7 +1596,7 @@ fetch(url, {
                                     <div class="sl-px-0 sl-py-1">
                                         <div style="max-height: 400px;" class="sl-overflow-y-auto sl-rounded">
                                             <pre><code class="language-php">$client = new \GuzzleHttp\Client();
-$url = 'https://api.newopay.it/clients/store/automatic';
+$url = 'https://api.newo.io/clients/store/automatic';
 $response = $client-&gt;post(
     $url,
     [
@@ -1621,7 +1621,7 @@ print_r(json_decode((string) $body));</code></pre>                              
                                             <pre><code class="language-python">import requests
 import json
 
-url = 'https://api.newopay.it/clients/store/automatic'
+url = 'https://api.newo.io/clients/store/automatic'
 payload = {
     "piva": "consequatur"
 }

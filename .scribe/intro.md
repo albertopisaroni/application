@@ -3,7 +3,7 @@
 
 
 <aside>
-    <strong>URL base</strong>: <code>https://api.newopay.it</code>
+    <strong>URL base</strong>: <code>https://api.newo.io</code>
 </aside>
 
     This documentation aims to provide all the information you need to work with our API.
