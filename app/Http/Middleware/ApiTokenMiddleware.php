@@ -22,7 +22,9 @@ class ApiTokenMiddleware
             ], 401);
         }
 
-        $apiToken = ApiToken::where('token', $providedToken)->first();
+        
+
+        $apiToken = ApiToken::where('token', hash('sha256', $providedToken))->first();
 
         if (!$apiToken) {
             return response()->json([

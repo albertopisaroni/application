@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\ApiTokenMiddleware;
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\FattureController;
 use App\Http\Controllers\StripeConnectController;
 use App\Models\Registration;
 use Illuminate\Support\Facades\Log;
@@ -16,13 +17,8 @@ use App\Services\LeadAnalyzer;
  */
 Route::get('/', fn () => redirect(config('app.docs_url')))->withoutMiddleware(ApiTokenMiddleware::class);
 
-/**
- * Questo endpoint non verrà documentato.
- *
- * @hideFromAPIDocumentation
- */
-Route::get('/stripe/connect/callback', [StripeConnectController::class, 'callback'])->withoutMiddleware(ApiTokenMiddleware::class)->name('stripe.connect.callback');
 
+Route::get('/stripe/connect/callback', [StripeConnectController::class, 'callback'])->withoutMiddleware(ApiTokenMiddleware::class)->name('stripe.connect.callback');
 
 
 /**
@@ -131,5 +127,10 @@ Route::put('/public/form/lead/{uuid}', function (Request $request, $uuid) {
 Route::prefix('clients')->group(function () {
     Route::post('/store/manual', [ClientController::class, 'storeManual']);
     Route::post('/store/automatic', [ClientController::class, 'storeAutomatic']);
+});
+
+Route::prefix('fatture')->group(function () {
+    Route::post('/nuova/manuale', [FattureController::class, 'nuovaManuale']);
+    Route::post('/nuova/piva', [FattureController::class, 'nuovaPiva']);
 });
 

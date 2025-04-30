@@ -11,6 +11,9 @@ class InvoiceNumbering extends Model
         'type',
         'prefix',
         'current_number',
+        'default_header_notes',
+        'default_footer_notes',
+        'default_payment_method_id',
         'name',
         'template_id',
         'logo_base64',        
@@ -71,5 +74,16 @@ class InvoiceNumbering extends Model
             return 1;
         }
         return $this->current_number + 1;
+    }
+
+    public function defaultPaymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class, 'default_payment_method_id');
+    }
+
+    public function template()
+    {
+        // se la tua colonna si chiama `template_id`:
+        return $this->belongsTo(InvoiceTemplate::class, 'template_id');
     }
 }

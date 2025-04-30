@@ -3,16 +3,26 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+
+use App\Jobs\SendInvoiceToSdiJob;
+use App\Services\InvoiceRenderer;
+
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\PaymentMethod;
 use App\Models\InvoiceNumbering;
 use App\Models\InvoiceTemplate;
-use Illuminate\Support\Facades\Storage;
 
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
+
 use Illuminate\Http\File;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 class InvoiceForm extends Component
@@ -32,6 +42,69 @@ class InvoiceForm extends Component
     public $footerNotes;
     public $saveNotesForFuture = false;
     public $globalDiscount = 0.00;
+
+    public bool $splitPayments = false;
+    public string $dueOption = 'on_receipt'; // 'on_receipt'|'15'|'30'|'custom'
+    public bool   $customDue = false;
+    public string $dueDate; // verrà popolata da setDue()
+
+    public $ddt_number;
+    public $ddt_date;
+
+    public string $documentType = 'TD01';   // TD01, TD24, TD25 …
+    public array  $documentTypes = [
+        'TD01' => 'Fattura immediata',
+        'TD01_ACC' => 'Fattura accompagnatoria', // user-friendly, poi mappi sotto
+        'TD24' => 'Fattura differita (beni)',
+        'TD25' => 'Fattura differita (servizi)',
+    ];
+    
+
+    public $payments = [
+        [
+          'date'       => null,
+          'value'      => 0.00,
+          'type'       => 'percent',  // 'amount' oppure 'percent'
+          'term'       => '15',
+        ],
+    ];
+
+    public array $termsOptions = [
+        '15'      => '15 gg',
+        '30'      => '30 gg',
+        '60'      => '60 gg',
+        '90'      => '90 gg',
+        '150'     => '150 gg',
+        '30_fm'   => '30 gg f.m.',
+        '60_fm'   => '60 gg f.m.',
+        'custom'  => 'Personalizzato',
+    ];
+
+    public array $modalitaSdi = [
+        'MP01' => 'Contanti',
+        'MP02' => 'Assegno bancario',
+        'MP03' => 'Assegno circolare',
+        'MP04' => 'Vaglia cambiario',
+        'MP05' => 'Bonifico',
+        'MP06' => 'Rimessa diretta',
+        'MP07' => 'Bollettino bancario',
+        'MP08' => 'Carta di credito',
+        'MP09' => 'RID – addebito diretto su conto corrente',
+        'MP10' => 'RID – pagamento mediante SDD',
+        'MP11' => 'RID – altri tipi',
+        'MP12' => 'RIBA',
+        'MP13' => 'MAV',
+        'MP14' => 'Quietanza erario',
+        'MP15' => 'Giroconto su conti di contabilità speciale',
+        'MP16' => 'PagoPA',
+        'MP17' => 'Bollo virtuale',
+        'MP18' => 'Trattenute su somme già riscosse',
+        'MP19' => 'Anticipo',
+        'MP20' => 'Credito cartolare',
+        'MP21' => 'Titoli di credito',
+        'MP22' => 'Credito su vendite',
+        'MP23' => 'Altro metodo di pagamento',
+    ];
 
     public float $subtotal = 0.00;
     public float $vat = 0.00;
@@ -56,6 +129,9 @@ class InvoiceForm extends Component
         'items.*.quantity' => 'required|numeric|min:0.01',
         'items.*.unit_price' => 'required|numeric|min:0',
         'items.*.vat_rate' => 'required|numeric|min:0',
+        'documentType' => 'required|in:TD01,TD01_ACC,TD24,TD25',
+        'ddt_number' => 'exclude_unless:documentType,TD24,TD25|required|string',
+        'ddt_date'   => 'exclude_unless:documentType,TD24,TD25|required|date',    
     ];
 
     public function mount()
@@ -66,9 +142,26 @@ class InvoiceForm extends Component
             abort(403, 'Nessuna azienda selezionata.');
         }
 
+        $this->dueDate = today()->toDateString();
+
+        $this->payments = [
+            [
+                'type'  => 'percent',  // 'percent' o 'amount'
+                'value' => 50,
+                'term'  => '30',       // codice fra quelli di $termsOptions
+                'date'  => now()->addDays(30)->toDateString(),
+            ],
+            [
+                'type'  => 'percent',
+                'value' => 50,
+                'term'  => '30',
+                'date'  => now()->addDays(30)->toDateString(),
+            ],
+        ];
+
         $this->clients = $this->company->clients()->get();
         $this->paymentMethods = $this->company->paymentMethods()->get();
-        $this->numberings = $this->company->invoiceNumberings()->get();
+        $this->numberings     = $this->company->invoiceNumberings()->get();
         $this->invoiceDate = today()->toDateString();
 
         // Recupera ultima numerazione usata, oppure la prima disponibile
@@ -86,105 +179,258 @@ class InvoiceForm extends Component
         $this->addItem();
     }
 
+    public function addPayment()
+    {
+        // prendo il tipo correntemente selezionato (se non c'è nulla, di default 'amount')
+        $defaultType = $this->payments[0]['type'] ?? 'amount';
+
+        // aggiungo la nuova rata con lo stesso type
+        $this->payments[] = [
+            'value' => 0.00,
+            'type'  => $defaultType,
+            'term'  => 'custom',   // o un termine di default che preferisci
+            'date'  => null,
+        ];
+
+        // ricalcolo sempre l'ultima rata perché mantenga 100% o totale
+        $this->recalcLast();
+    }
+
+    public function updatedSplitPayments($val)
+    {
+        if ($val && count($this->payments) < 2) {
+            // inizializza due rate 50/50
+            $this->mount();
+        }
+    }
+
+    public function updatedPayments($val, $key)
+    {
+        // quando cambia qualsiasi payments.*.value o payments.*.type
+        // ricalcola l’ultima rata
+        $this->recalcLast();
+    }
+
+    public function updatedPaymentsTerm($val, $key)
+    {
+        // payments.{i}.term cambiato
+        // ricalcola la data
+        if (str($key)->endsWith('.term')) {
+            [$_, $i, $_] = explode('.', $key);
+            $term = $this->payments[$i]['term'];
+            if ($term !== 'custom') {
+                $days = match($term) {
+                  '15'    => 15,
+                  '30'    => 30,
+                  '60'    => 60,
+                  '90'    => 90,
+                  '150'   => 150,
+                  '30_fm' => now()->endOfMonth()->diffInDays(now()),
+                  '60_fm' => now()->addMonth()->endOfMonth()->diffInDays(now()),
+                };
+                $this->payments[$i]['date'] = now()->addDays($days)->toDateString();
+            }
+        }
+    }
+
+    public function updatedPaymentsDate($val, $key)
+    {
+        // se l’utente modifica a mano la data, imposta term = 'custom'
+        if (str($key)->endsWith('.date')) {
+            [$_, $i, $_] = explode('.', $key);
+            $this->payments[$i]['term'] = 'custom';
+        }
+    }
+
+    protected function recalcLast()
+    {
+        $n = count($this->payments);
+        if ($n < 2) return;
+        // se tipo percentuale
+        if ($this->payments[0]['type'] === 'percent') {
+            $sum = 0;
+            for ($i = 0; $i < $n - 1; $i++) {
+                $sum += floatval($this->payments[$i]['value']);
+            }
+            $this->payments[$n - 1]['value'] = max(0, 100 - $sum);
+        } else {
+            // tipo importo: usa $this->total
+            $sum = 0;
+            for ($i = 0; $i < $n - 1; $i++) {
+                $sum += floatval($this->payments[$i]['value']);
+            }
+            $this->payments[$n - 1]['value'] = max(0, $this->total - $sum);
+        }
+    }
+
+    public function setDue(string $opt)
+    {
+        $this->dueOption = $opt;
+        $this->customDue = $opt === 'custom';
+
+        if (! $this->customDue) {
+            $days = match($opt) {
+                'on_receipt' => 0,
+                '15'         => 15,
+                '30'         => 30,
+                default      => 0,
+            };
+            $this->dueDate = now()->addDays($days)->toDateString();
+        }
+    }
+
     public function save()
     {
+        // --- controllo somme rate --------------------------------------------
+        if ($this->splitPayments) {
+            $type = $this->payments[0]['type'] ?? 'amount';
+            $sum  = collect($this->payments)->sum(fn($p) => floatval($p['value']));
+            if ($type === 'percent' && round($sum, 2) !== 100.00) {
+                $this->addError('payments', "La somma delle percentuali deve essere 100% (hai $sum%).");
+                return;
+            }
+            if ($type === 'amount' && round($sum, 2) !== round($this->total, 2)) {
+                $this->addError('payments', "La somma degli importi (€$sum) deve corrispondere al totale (€{$this->total}).");
+                return;
+            }
+        }
+
         $this->validate();
 
+        if (! $this->splitPayments) {
+            $this->payments = [[
+                'date'  => $this->dueDate,
+                'value' => $this->total,
+                'type'  => 'amount',
+            ]];
+        }
+
         // Trova i modelli collegati
-        $client = Client::findOrFail($this->selectedClientId);
-        $numbering = InvoiceNumbering::findOrFail($this->selectedNumberingId);
+        $client        = Client::findOrFail($this->selectedClientId);
+        $numbering     = InvoiceNumbering::findOrFail($this->selectedNumberingId);
         $paymentMethod = PaymentMethod::find($this->selectedPaymentMethodId);
+        $sdiMode       = $paymentMethod?->sdi_code ?? 'MP05';
+        $iban          = $paymentMethod?->iban;
 
         // Calcoli totali aggiornati
         $this->recalculateTotals();
 
-        // Crea la fattura
-        $invoice = Invoice::create([
-            'company_id' => $this->company->id,
-            'client_id' => $client->id,
-            'numbering_id' => $this->selectedNumberingId,
-            'invoice_number' => $this->invoicePrefix . $this->invoiceNumber,
-            'issue_date' => $this->invoiceDate,
-            'fiscal_year' => \Carbon\Carbon::parse($this->invoiceDate)->format('Y'),
-            'withholding_tax' => $this->withholdingTax,
-            'inps_contribution' => $this->inpsContribution,
-            'payment_methods_id' => $paymentMethod?->id,
-            'subtotal' => $this->subtotal,
-            'vat' => $this->vat,
-            'total' => $this->total,
-            'global_discount' => $this->globalDiscount,
-            'header_notes' => $this->headerNotes,
-            'footer_notes' => $this->footerNotes,
-            'save_notes_for_future' => $this->saveNotesForFuture,
-            'client_name' => $client->name,
-            'client_address' => $client->address,
-            'client_email' => $client->email,
-            'client_phone' => $client->phone,
-        ]);
+        DB::beginTransaction();
 
-        // Salva le righe
-        foreach ($this->items as $item) {
-            $invoice->items()->create([
-                'name' => $item['name'],
-                'description' => $item['description'] ?? '',
-                'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'vat_rate' => $item['vat_rate'],
-                'unit_of_measure' => $item['unit_of_measure'] ?? '',
+        try {
+            // 1) Creo la fattura
+            $invoice = Invoice::create([
+                'company_id'           => $this->company->id,
+                'client_id'            => $client->id,
+                'numbering_id'         => $this->selectedNumberingId,
+                'invoice_number'       => $this->invoicePrefix . $this->invoiceNumber,
+                'issue_date'           => $this->invoiceDate,
+                'fiscal_year'          => Carbon::parse($this->invoiceDate)->format('Y'),
+                'withholding_tax'      => $this->withholdingTax,
+                'inps_contribution'    => $this->inpsContribution,
+                'payment_method_id'    => $paymentMethod?->id,
+                'subtotal'             => $this->subtotal,
+                'vat'                  => $this->vat,
+                'total'                => $this->total,
+                'global_discount'      => $this->globalDiscount,
+                'header_notes'         => $this->headerNotes,
+                'document_type'        => $this->documentType,
+                'footer_notes'         => $this->footerNotes,
+                'save_notes_for_future'=> $this->saveNotesForFuture,
+                'sdi_sent_at'   => null,
+                'sdi_received_at' => null,
+                'sdi_attempt'   => 1,
             ]);
-        }
 
-        // Aggiorna progressivo
-        $numbering->increment('current_number');
-
-        // Salva note se richiesto
-        if ($this->saveNotesForFuture) {
-            $numbering->default_header_notes = $this->headerNotes;
-            $numbering->default_footer_notes = $this->footerNotes;
-            $numbering->save();
-        }
-
-
-        // 🔽 GENERA PDF E SALVA SU S3
-        $html = $this->renderInvoicePreview();
-        $pdf = $this->generatePdf($html);
-
-        $companySlug = $this->company->slug;
-        $year = \Carbon\Carbon::parse($this->invoiceDate)->format('Y');
-        $invoiceNumber = $this->invoicePrefix . $this->invoiceNumber;
-        $path = "$companySlug/fatture/{$this->selectedNumberingId}/$year/Fattura-$invoiceNumber.pdf";
-
-        $finalPath = app()->environment('production') ? $path : "tests/$path";
-
-
-        // Carica su S3
-        Storage::disk('s3')->put($finalPath, $pdf);
-
-        $url = Storage::disk('s3')->temporaryUrl(
-            $finalPath,
-            now()->addMinutes(30) // oppure addDays(1)
-        );
-
-
-        // Se hai una colonna per salvare il PDF path (es. `pdf_path`)
-        $invoice->pdf_path = $finalPath;
-        $invoice->save();
-
-        // Recupera tutti i contatti del cliente che vogliono ricevere la fattura
-        $recipients = $client->contacts()->where('receives_invoice_copy', 1)->pluck('email')->toArray();
-
-        if (!empty($recipients)) {
-            $pdfUrl = Storage::disk('s3')->url($finalPath);
-            foreach ($recipients as $email) {
-                \Mail::to($email)->send(new \App\Mail\InvoiceMail($invoice, $finalPath));
-                \Log::info("📤 Fattura inviata a: $email");
+            // 2) Salvo le righe
+            foreach ($this->items as $item) {
+                $invoice->items()->create([
+                    'name'            => $item['name'],
+                    'description'     => $item['description'] ?? '',
+                    'quantity'        => $item['quantity'],
+                    'unit_price'      => $item['unit_price'],
+                    'vat_rate'        => $item['vat_rate'],
+                    'unit_of_measure' => $item['unit_of_measure'] ?? '',
+                ]);
             }
-        } else {
-            \Log::info("📭 Nessun contatto configurato per ricevere la fattura del cliente: {$client->name}");
-        }
 
-        session()->flash('success', 'Fattura salvata con successo.');
-        return redirect()->route('fatture.list');
+            // 3) Aggiorno il progressivo
+            $numbering->increment('current_number');
+
+            // 4) Salvo le note se richiesto
+            if ($this->saveNotesForFuture) {
+                $numbering->default_header_notes = $this->headerNotes;
+                $numbering->default_footer_notes = $this->footerNotes;
+                $numbering->save();
+            }
+
+            foreach ($this->payments as $p) {
+                $raw    = floatval($p['value']);
+                $amount = ($p['type'] ?? 'amount') === 'percent'
+                    ? round($invoice->total * $raw / 100, 2)
+                    : $raw;
+            
+                $invoice->paymentSchedules()->create([
+                    'due_date' => $p['date'],
+                    'amount'   => $amount,
+                    'type'     => $p['type'],
+                    'percent'  => $p['type'] === 'percent' ? $raw : null,
+                ]);
+            }
+
+            // 5) Genero XML, invio a SDI, PDF, S3, email…
+            SendInvoiceToSdiJob::dispatch($invoice->id);
+
+            // Generazione PDF e caricamento S3 (resta invariato)
+            $renderer = new InvoiceRenderer($invoice, $this->items, $this->payments, $this->splitPayments, $this->dueDate);
+            $pdf = $renderer->renderPdf();
+
+            $companySlug   = $this->company->slug;
+            $year          = Carbon::parse($this->invoiceDate)->format('Y');
+            $invoiceNumber = $this->invoicePrefix . $this->invoiceNumber;
+            $path          = "{$companySlug}/fatture/{$this->selectedNumberingId}/{$year}/{$invoice->invoice_number}.pdf";
+
+            $encrypted = encrypt($pdf);
+            Storage::disk('s3')->put($path, $encrypted);
+
+            $invoice->pdf_path = $path;
+            $invoice->save();
+
+            $recipients = $client->contacts()
+                                ->where('receives_invoice_copy', 1)
+                                ->pluck('email')
+                                ->toArray();
+
+            if (! empty($recipients)) {
+                foreach ($recipients as $email) {
+                    \Mail::to($email)
+                        ->send(new \App\Mail\InvoiceMail($invoice, $finalPath));
+                    Log::info("📤 Fattura inviata a: $email");
+                }
+            } else {
+                Log::info("📭 Nessun contatto configurato per il cliente {$client->name}");
+            }
+
+            DB::commit();
+
+            session()->flash('success', 'Fattura salvata con successo.');
+            return redirect()->route('fatture.list');
+        }
+        catch (\Throwable $e) {
+            DB::rollBack();
+
+            // Ripristino contatore se già incrementato
+            if (isset($numbering) && $numbering->wasChanged('current_number')) {
+                $numbering->decrement('current_number');
+            }
+            // Elimino la fattura “orfana”
+            if (isset($invoice) && $invoice->exists) {
+                $invoice->delete();
+            }
+
+            Log::error('Errore salvataggio fattura', ['exception' => $e]);
+            $this->addError('save', 'Errore durante il salvataggio: ' . $e->getMessage());
+        }
     }
 
     public function generatePdf($html)
@@ -245,27 +491,97 @@ class InvoiceForm extends Component
     public function updatedSelectedNumberingId($value)
     {
         $numbering = InvoiceNumbering::find($value);
-
+    
         $this->invoicePrefix = $numbering->prefix ?? '';
         $this->invoiceNumber = $numbering->getNextNumericPart();
-
-        if ($numbering->save_notes_for_future) {
-            $this->headerNotes = $numbering->default_header_notes;
-            $this->footerNotes = $numbering->default_footer_notes;
-        }
-
+    
+        $this->headerNotes = $numbering->default_header_notes ?? $this->headerNotes;
+        $this->footerNotes = $numbering->default_footer_notes ?? $this->footerNotes;
+    
         // Carica template HTML associato alla numerazione
         if ($numbering->template_id) {
             $template = InvoiceTemplate::find($numbering->template_id);
             $this->templateHtml = $template?->blade ?? '';
         }
+    
+        // → Imposta qui il metodo di pagamento di default
+        //   se la numerazione ne ha uno, altrimenti scegli il primo disponibile
+        $this->selectedPaymentMethodId = $numbering->default_payment_method_id
+            ?? ($this->paymentMethods->first()?->id ?? null);
     }
 
-    public function updated($property)
+    public function updated($propertyName, $value)
     {
-        if (str_starts_with($property, 'items.') || $property === 'globalDiscount') {
+        // A) Cambio € / % in una rata
+        if (Str::startsWith($propertyName, 'payments.') && Str::endsWith($propertyName, '.type')) {
+            // propaga il nuovo tipo a tutte le rate
+            foreach ($this->payments as &$p) {
+                $p['type'] = $value;
+            }
+            unset($p);
+    
+            // riconverti tutti i valori in base al tipo
+            if ($value === 'percent') {
+                $this->convertAmountsToPercent();
+            } else {
+                $this->convertAmountsToEuros();
+            }
+        }
+    
+        // B) Ricalcola subtotali articoli & sconto
+        if (Str::startsWith($propertyName, 'items.') || $propertyName === 'globalDiscount') {
             $this->recalculateTotals();
         }
+    
+        // C) Se cambia il termine, aggiorna la data con la tua logica
+        if (Str::startsWith($propertyName, 'payments.') && Str::endsWith($propertyName, '.term')) {
+            $this->updatedPaymentsTerm($value, $propertyName);
+        }
+    
+        // D) Se cambia la data manualmente, imposta il termine a “custom”
+        if (Str::startsWith($propertyName, 'payments.') && Str::endsWith($propertyName, '.date')) {
+            $this->updatedPaymentsDate($value, $propertyName);
+        }
+    }
+
+    protected function convertAmountsToPercent()
+    {
+        $total = max($this->total, 1);
+        $sum   = 0;
+        $n     = count($this->payments);
+
+        foreach ($this->payments as $i => &$p) {
+            // dal valore in euro → %
+            $perc      = round($p['value'] / $total * 100, 2);
+            $p['value'] = $perc;
+            if ($i < $n - 1) {
+                $sum += $perc;
+            }
+        }
+        unset($p);
+
+        // forzo l’ultima rata a chiudere al 100%
+        $this->payments[$n - 1]['value'] = round(100 - $sum, 2);
+    }
+
+    protected function convertAmountsToEuros()
+    {
+        $total = $this->total;
+        $sum   = 0;
+        $n     = count($this->payments);
+
+        foreach ($this->payments as $i => &$p) {
+            // da % → valore in euro
+            $amt        = round($total * ($p['value'] / 100), 2);
+            $p['value'] = $amt;
+            if ($i < $n - 1) {
+                $sum += $amt;
+            }
+        }
+        unset($p);
+
+        // forzo l’ultima rata a chiudere al totale
+        $this->payments[$n - 1]['value'] = round($total - $sum, 2);
     }
 
     public function calculateTotals()
@@ -316,114 +632,58 @@ class InvoiceForm extends Component
         ]);
     }
 
-    public function renderInvoicePreview(): string
+    public function getPreviewHtmlProperty(): string
     {
-
-        $company = $this->company;
-        $numbering = InvoiceNumbering::find($this->selectedNumberingId);
-        $client = Client::find($this->selectedClientId);
-
-
-        $invoiceRows = '';
-        foreach ($this->items as $index => $item) {
-            $quantity   = $item['quantity'];
-            $unitPrice  = number_format(floatval($item['unit_price']), 2, ',', '.');
-            $vatRate    = $item['vat_rate'];
-            $lineTotal  = number_format(floatval($item['quantity']) * floatval($item['unit_price']), 2, ',', '.');
-
-            $name = e($item['name']);
-            $desc = e($item['description'] ?? '');
-            $fullDescription = $desc ? "$name - $desc" : $name;
-
-            $invoiceRows .= '<tr>
-                <td class="border-b py-3 pl-3">' . ($index + 1) . '</td>
-                <td class="border-b py-3 pl-2">' . $fullDescription . '</td>
-                <td class="border-b py-3 pl-2 text-right">' . $quantity . '</td>
-                <td class="border-b py-3 pl-2 text-right">€' . $unitPrice . '</td>
-                <td class="border-b py-3 pl-2 text-right">' . $vatRate . '%</td>
-                <td class="border-b py-3 pl-2 pr-4 text-right">€' . $lineTotal . '</td>
-            </tr>';
-        }
-
-
-        $variables = [
-            '{{ $invoiceDate }}' => $this->invoiceDate,
-            '{{ $invoiceNumber }}' => $this->invoicePrefix . $this->invoiceNumber,
-            '{{ $paymentIban }}' => optional(PaymentMethod::find($this->selectedPaymentMethodId))->iban ?? '',
-
-            // Cliente
-            '{{ $clientName }}'     => $client?->name ?? '',
-            '{{ $clientPIVA }}'     => $client?->piva ?? '',
-            '{{ $clientAddress }}'  => $client?->address ?? '',
-            '{{ $clientCAP }}'      => $client?->cap ?? '',
-            '{{ $clientCity }}'     => $client?->city ?? '',
-            '{{ $clientProvince }}' => $client?->province ?? '',
-
-            // Azienda
-            '{{ $companyName }}' => $company->legal_name ?? $company->name,
-            '{{ $companyVat }}' => $company->piva ?? '',
-
-            '{{ $companyReaBlock }}' => $company->tax_code
-                ? "<p>R.E.A: {$company->tax_code}</p>"
-                : '',
-
-            '{{ $companyEmailBlock }}' => $company->email
-                ? "<p>Email: {$company->email}</p>"
-                : '',
-
-            '{{ $companyPecBlock }}' => $company->pec_email
-                ? "<p>PEC: {$company->pec_email}</p>"
-                : '',
-
-            '{{ $globalDiscountBlock }}' => $this->globalDiscount > 0
-                ? <<<HTML
-                    <tr>
-                        <td class="border-b p-3 w-full"></td>
-                        <td class="border-b p-3">
-                            <div class="whitespace-nowrap text-neutral-700">Sconto:</div>
-                        </td>
-                        <td class="border-b p-3 text-right">
-                            <div class="whitespace-nowrap text-neutral-700">€ $this->globalDiscount</div>
-                        </td>
-                    </tr>
-                HTML
-                : '',
-
-
-            '{{ $headerNotesBlock }}' => $this->headerNotes
-                ? <<<HTML
-                    <div class="px-14 pt-8 text-sm text-neutral-700">
-                        <p style="color: #0d172b" class="font-bold">Intestazione:</p>
-                        <p>$this->headerNotes</p>
-                    </div>
-                HTML
-                : '',
-
-            '{{ $footerNotesBlock }}' => $this->footerNotes
-                ? <<<HTML
-                    <div class="px-14 py-2 text-sm text-neutral-700">
-                        <p style="color: #0d172b" class="font-bold">Note aggiuntive:</p>
-                        <p>$this->footerNotes</p>
-                    </div>
-                HTML
-                : '',
-
-            '{{ $paymentMethodBlock }}' => $this->selectedPaymentMethodId
-                ? "<p><strong>Pagamento:</strong> " . e(optional($this->paymentMethods->find($this->selectedPaymentMethodId))->name) . "</p>"
-                : '',
-
-            // Logo
-            '{{ $companyLogo }}'    => $numbering?->logo_base64 ?? '',
-
-            // Totali
-            '{{ $invoiceRows }}' => $invoiceRows,
-
-            '{{ $subtotal }}' => number_format($this->subtotal, 2, ',', '.'),
-            '{{ $vatTotal }}' => number_format($this->vat, 2, ',', '.'),
-            '{{ $price }}'    => number_format($this->total, 2, ',', '.'),
-
-        ];
-
-        return str_replace(array_keys($variables), array_values($variables), $this->templateHtml);
+        // 1) crea l’istanza in memoria
+        $invoice = Invoice::make([
+            'company_id'           => $this->company->id,
+            'client_id'            => $this->selectedClientId,
+            'numbering_id'         => $this->selectedNumberingId,
+            'invoice_number'       => $this->invoicePrefix . $this->invoiceNumber,
+            'issue_date'           => $this->invoiceDate,
+            'fiscal_year'          => Carbon::parse($this->invoiceDate)->format('Y'),
+            'withholding_tax'      => $this->withholdingTax,
+            'inps_contribution'    => $this->inpsContribution,
+            'payment_method_id'    => $this->selectedPaymentMethodId,
+            'subtotal'             => $this->subtotal,
+            'vat'                  => $this->vat,
+            'total'                => $this->total,
+            'global_discount'      => $this->globalDiscount,
+            'header_notes'         => $this->headerNotes,
+            'document_type'        => $this->documentType,
+            'footer_notes'         => $this->footerNotes,
+            'save_notes_for_future'=> $this->saveNotesForFuture,
+            'sdi_sent_at'          => null,
+            'sdi_received_at'      => null,
+            'sdi_attempt'          => 1,
+        ]);
+    
+        // 2) carica numbering + template dal DB
+        $numbering = InvoiceNumbering::with('template')
+                      ->findOrFail($this->selectedNumberingId);
+    
+        // 3) “attacca” la relazione al model non-persisted
+        $invoice->setRelation('numbering', $numbering);
+    
+       
+        $renderer = new InvoiceRenderer($invoice, $this->items, $this->payments, $this->splitPayments, $this->dueDate);
+    
+        return $renderer->renderHtml();
     }
+
+    public function removePayment($index)
+    {
+        // 1) Rimuovo la rata
+        unset($this->payments[$index]);
+        $this->payments = array_values($this->payments);
+    
+        // 2) Se ora ho meno di 2 rate, torno alla scadenza singola
+        if (count($this->payments) < 2) {
+            $this->splitPayments = false;
+        } else {
+            // altrimenti ricalcolo l’ultima rata
+            $this->recalcLast();
+        }
+    }
+
 }

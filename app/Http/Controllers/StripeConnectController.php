@@ -12,6 +12,12 @@ use Stripe\StripeClient;
 
 class StripeConnectController extends Controller
 {
+
+    /**
+     * Questo endpoint non verrà documentato.
+     *
+     * @hideFromAPIDocumentation
+     */
     public function redirect()
     {
 
@@ -25,7 +31,10 @@ class StripeConnectController extends Controller
         // Esempio: lista prodotti
         $products = $stripe->products->all();
 
-        return json_encode($customers);
+        // Esempio: lista abbonamenti
+        $subscriptions = $stripe->subscriptions->all();
+
+        return json_encode($subscriptions);
 
 
         $companyId = auth()->user()->current_company_id;
@@ -42,6 +51,11 @@ class StripeConnectController extends Controller
         return redirect('https://connect.stripe.com/oauth/authorize?' . $query);
     }
 
+    /**
+     * Questo endpoint non verrà documentato.
+     *
+     * @hideFromAPIDocumentation
+     */
     public function callback(Request $request)
     {
         $code = $request->get('code');

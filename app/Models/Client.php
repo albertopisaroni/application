@@ -8,6 +8,9 @@ class Client extends Model
 {
     protected $fillable = [
         'company_id',
+        'stripe_account_id',
+        'stripe_customer_id',
+        'origin',
         'name',
         'address',
         'cap',

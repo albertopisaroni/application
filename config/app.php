@@ -57,6 +57,7 @@ return [
     'app_url' => env('APP_URL', 'https://app.newo.io'),
     'api_url' => env('API_URL', 'https://api.newo.io'),
     'docs_url' => env('DOCS_URL', 'https://docs.newo.io'),
+    'fatture_url' => env('FATTURE_URL', 'https://fatture.newo.io'),
 
     /*
     |--------------------------------------------------------------------------

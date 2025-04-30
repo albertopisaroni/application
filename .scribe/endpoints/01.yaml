@@ -1,0 +1,813 @@
+name: Fatture
+description: ''
+endpoints:
+  -
+    httpMethods:
+      - POST
+    uri: fatture/nuova/manuale
+    metadata:
+      groupName: Fatture
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Crea una nuova fattura manuale specificando tutti i dati via API.'
+      description: ''
+      authenticated: true
+      custom: []
+    headers:
+      Authorization: 'Bearer {YOUR_API_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      cliente:
+        name: cliente
+        description: ''
+        required: false
+        example: []
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      cliente.name:
+        name: cliente.name
+        description: 'Nome del cliente.'
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      cliente.piva:
+        name: cliente.piva
+        description: 'Partita IVA del cliente.'
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      cliente.address:
+        name: cliente.address
+        description: 'Indirizzo del cliente.'
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      cliente.cap:
+        name: cliente.cap
+        description: 'CAP del cliente.'
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      cliente.city:
+        name: cliente.city
+        description: 'Città del cliente.'
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      cliente.province:
+        name: cliente.province
+        description: 'Provincia del cliente.'
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      cliente.country:
+        name: cliente.country
+        description: 'default: IT Paese del cliente.'
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      cliente.sdi:
+        name: cliente.sdi
+        description: 'nullable Codice SDI del cliente.'
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      cliente.pec:
+        name: cliente.pec
+        description: 'nullable PEC del cliente.'
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      cliente.email:
+        name: cliente.email
+        description: 'nullable Email del cliente.'
+        required: false
+        example: qkunze@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      cliente.phone:
+        name: cliente.phone
+        description: 'nullable Telefono del cliente.'
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      numerazione:
+        name: numerazione
+        description: 'Nome della numerazione da usare.'
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      issue_date:
+        name: issue_date
+        description: 'Data di emissione fattura (YYYY-MM-DD).'
+        required: true
+        example: consequatur
+        type: date
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      tipo_documento:
+        name: tipo_documento
+        description: 'in:TD01,TD01_ACC,TD24,TD25 Tipo di documento.'
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      sconto:
+        name: sconto
+        description: 'nullable Sconto globale (importo).'
+        required: false
+        example: 11613.31890586
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      intestazione:
+        name: intestazione
+        description: 'nullable Testo da inserire nelle note di intestazione.'
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      note:
+        name: note
+        description: 'nullable Note aggiuntive.'
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      metodo_pagamento:
+        name: metodo_pagamento
+        description: 'Nome del metodo di pagamento.'
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      articoli:
+        name: articoli
+        description: 'Elenco degli articoli.'
+        required: true
+        example:
+          - consequatur
+        type: 'string[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      scadenze:
+        name: scadenze
+        description: 'nullable Scadenze di pagamento (se omesso, 30gg da issue_date).'
+        required: false
+        example:
+          - consequatur
+        type: 'string[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      invia_sdi:
+        name: invia_sdi
+        description: 'default:true Se inviare la fattura al SDI.'
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      'articoli[].nome':
+        name: 'articoli[].nome'
+        description: ''
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli[].quantita':
+        name: 'articoli[].quantita'
+        description: validation.min.
+        required: true
+        example: 45
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli[].prezzo':
+        name: 'articoli[].prezzo'
+        description: validation.min.
+        required: true
+        example: 56
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli[].iva':
+        name: 'articoli[].iva'
+        description: validation.min.
+        required: true
+        example: 16
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli[].descrizione':
+        name: 'articoli[].descrizione'
+        description: ''
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      'scadenze[].date':
+        name: 'scadenze[].date'
+        description: 'This field is required when <code>scadenze</code> is present.  validation.date.'
+        required: false
+        example: '2025-04-29T21:17:09'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'scadenze[].value':
+        name: 'scadenze[].value'
+        description: 'This field is required when <code>scadenze</code> is present. validation.min.'
+        required: false
+        example: 45
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'scadenze[].type':
+        name: 'scadenze[].type'
+        description: 'This field is required when <code>scadenze</code> is present.'
+        required: false
+        example: percent
+        type: string
+        enumValues:
+          - percent
+          - amount
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli.*.nome':
+        name: 'articoli.*.nome'
+        description: 'Nome articolo.'
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli.*.quantita':
+        name: 'articoli.*.quantita'
+        description: Quantità.
+        required: true
+        example: 11613.31890586
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli.*.prezzo':
+        name: 'articoli.*.prezzo'
+        description: 'Prezzo unitario.'
+        required: true
+        example: 11613.31890586
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli.*.iva':
+        name: 'articoli.*.iva'
+        description: 'Aliquota IVA (%).'
+        required: true
+        example: 11613.31890586
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli.*.descrizione':
+        name: 'articoli.*.descrizione'
+        description: 'nullable Descrizione articolo.'
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'scadenze.*.date':
+        name: 'scadenze.*.date'
+        description: 'Data scadenza (YYYY-MM-DD).'
+        required: true
+        example: consequatur
+        type: date
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'scadenze.*.value':
+        name: 'scadenze.*.value'
+        description: 'Valore (importo o percentuale).'
+        required: true
+        example: 11613.31890586
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'scadenze.*.type':
+        name: 'scadenze.*.type'
+        description: 'in:percent,amount required Tipo di valore.'
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+    cleanBodyParameters:
+      cliente:
+        name: consequatur
+        piva: consequatur
+        address: consequatur
+        cap: consequatur
+        city: consequatur
+        province: consequatur
+        country: consequatur
+        sdi: consequatur
+        pec: consequatur
+        email: qkunze@example.com
+        phone: consequatur
+      numerazione: consequatur
+      issue_date: consequatur
+      tipo_documento: consequatur
+      sconto: 11613.31890586
+      intestazione: consequatur
+      note: consequatur
+      metodo_pagamento: consequatur
+      articoli:
+        - consequatur
+      scadenze:
+        - consequatur
+      invia_sdi: false
+    fileParameters: []
+    responses:
+      -
+        status: 201
+        content: |-
+          {
+            "id": 123,
+            "url": "https://fatture.newo.io/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/pdf"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer YOUR_EXAMPLE_TOKEN'
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - POST
+    uri: fatture/nuova/piva
+    metadata:
+      groupName: Fatture
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Crea una nuova fattura automatica tramite lookup dei dati aziendali da Partita IVA.'
+      description: ''
+      authenticated: true
+      custom: []
+    headers:
+      Authorization: 'Bearer {YOUR_API_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      piva:
+        name: piva
+        description: 'Partita IVA (con o senza prefisso "IT").'
+        required: true
+        example: '03666510791'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      numerazione:
+        name: numerazione
+        description: 'nullable Nome della numerazione da usare. Default: Standard.'
+        required: false
+        example: Standard
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        custom: []
+      issue_date:
+        name: issue_date
+        description: 'nullable Data di emissione fattura (YYYY-MM-DD). Default: oggi.'
+        required: false
+        example: '2025-04-29'
+        type: date
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        custom: []
+      tipo_documento:
+        name: tipo_documento
+        description: 'in:TD01,TD01_ACC,TD24,TD25 nullable Tipo di documento. Default: TD01.'
+        required: false
+        example: TD01
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        custom: []
+      metodo_pagamento:
+        name: metodo_pagamento
+        description: 'nullable Nome del metodo di pagamento. Default: ultimo usato.'
+        required: false
+        example: 'Revolut Pro'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        custom: []
+      sconto:
+        name: sconto
+        description: 'nullable Sconto globale (importo in Euro).'
+        required: false
+        example: 20.5
+        type: number
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        custom: []
+      intestazione:
+        name: intestazione
+        description: 'nullable Testo di intestazione.'
+        required: false
+        example: 'Intestazione personalizzata'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        custom: []
+      note:
+        name: note
+        description: 'nullable Note aggiuntive.'
+        required: false
+        example: 'Grazie per averci scelto'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        custom: []
+      invia_sdi:
+        name: invia_sdi
+        description: 'default:true Se inviare la fattura allo SDI.'
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        custom: []
+      articoli:
+        name: articoli
+        description: 'Elenco degli articoli.'
+        required: true
+        example:
+          -
+            nome: 'Consulenza informatica'
+            quantita: 22
+            prezzo: 150
+            iva: 0
+            descrizione: 'Consulenza Maggio 2025'
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      scadenze:
+        name: scadenze
+        description: 'nullable Scadenze di pagamento (se omesso, 30gg da issue_date).'
+        required: false
+        example:
+          -
+            date: '2025-05-30'
+            value: 50
+            type: percent
+          -
+            date: '2025-06-30'
+            value: 50
+            type: percent
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        custom: []
+      'articoli[].nome':
+        name: 'articoli[].nome'
+        description: ''
+        required: true
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli[].quantita':
+        name: 'articoli[].quantita'
+        description: validation.min.
+        required: true
+        example: 45
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli[].prezzo':
+        name: 'articoli[].prezzo'
+        description: validation.min.
+        required: true
+        example: 56
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'articoli[].iva':
+        name: 'articoli[].iva'
+        description: validation.min.
+        required: false
+        example: 16
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      'articoli[].descrizione':
+        name: 'articoli[].descrizione'
+        description: ''
+        required: false
+        example: consequatur
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        custom: []
+      'scadenze[].date':
+        name: 'scadenze[].date'
+        description: 'This field is required when <code>scadenze</code> is present.  validation.date.'
+        required: false
+        example: '2025-04-29T21:17:09'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'scadenze[].value':
+        name: 'scadenze[].value'
+        description: 'This field is required when <code>scadenze</code> is present. validation.min.'
+        required: false
+        example: 45
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      'scadenze[].type':
+        name: 'scadenze[].type'
+        description: 'This field is required when <code>scadenze</code> is present.'
+        required: false
+        example: amount
+        type: string
+        enumValues:
+          - percent
+          - amount
+        exampleWasSpecified: false
+        nullable: false
+        custom: []
+      articoli.nome:
+        name: articoli.nome
+        description: 'Nome articolo.'
+        required: true
+        example: 'Consulenza informatica'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      articoli.quantita:
+        name: articoli.quantita
+        description: Quantità.
+        required: true
+        example: 22.0
+        type: number
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      articoli.prezzo:
+        name: articoli.prezzo
+        description: 'Prezzo unitario.'
+        required: true
+        example: 150.0
+        type: number
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      articoli.iva:
+        name: articoli.iva
+        description: 'Aliquota IVA (%).'
+        required: true
+        example: 0.0
+        type: number
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      articoli.descrizione:
+        name: articoli.descrizione
+        description: 'nullable Descrizione articolo.'
+        required: false
+        example: 'Consulenza Maggio 2025'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      scadenze.date:
+        name: scadenze.date
+        description: 'Data scadenza (YYYY-MM-DD).'
+        required: true
+        example: '2025-05-30'
+        type: date
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      scadenze.value:
+        name: scadenze.value
+        description: 'Importo (o percentuale se type = percent).'
+        required: true
+        example: 50.0
+        type: number
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      scadenze.type:
+        name: scadenze.type
+        description: 'in:percent,amount required Tipo di valore.'
+        required: false
+        example: percent
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+    cleanBodyParameters:
+      piva: '03666510791'
+      numerazione: Standard
+      issue_date: '2025-04-29'
+      tipo_documento: TD01
+      metodo_pagamento: 'Revolut Pro'
+      sconto: 20.5
+      intestazione: 'Intestazione personalizzata'
+      note: 'Grazie per averci scelto'
+      invia_sdi: true
+      articoli:
+        -
+          nome: 'Consulenza informatica'
+          quantita: 22
+          prezzo: 150
+          iva: 0
+          descrizione: 'Consulenza Maggio 2025'
+      scadenze:
+        -
+          date: '2025-05-30'
+          value: 50
+          type: percent
+        -
+          date: '2025-06-30'
+          value: 50
+          type: percent
+    fileParameters: []
+    responses:
+      -
+        status: 201
+        content: |-
+          {
+            "success": true,
+            "data": {
+              "id": 124,
+              "url": "https://fatture.newo.io/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/pdf"
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer YOUR_EXAMPLE_TOKEN'
+    controller: null
+    method: null
+    route: null
+    custom: []

@@ -18,6 +18,7 @@ use App\Http\Controllers\AbbonamentiController;
 use App\Http\Controllers\SocialController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\OpenBankingController;
 
 
 
@@ -27,7 +28,6 @@ use App\Livewire\App\Dashboard;
 
 
 Route::get('/stripe/connect', [StripeConnectController::class, 'redirect'])->name('stripe.connect');
-
 
 
 Route::get('/qr/{uuid}', [QrController::class, 'show'])->name('qr.show');

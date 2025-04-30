@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Storage;
 
 class InvoiceMail extends Mailable
 {
@@ -19,6 +20,9 @@ class InvoiceMail extends Mailable
             ->view('emails.invoice')
             ->attachFromStorageDisk('s3', $this->pdfPath, 'Fattura.pdf', [
                 'mime' => 'application/pdf',
+            ])->with([
+                'invoice' => $this->invoice,
+                'url'     => Storage::disk('s3')->temporaryUrl($this->pdfPath, now()->addMinutes(5)),
             ]);
     }
 }
