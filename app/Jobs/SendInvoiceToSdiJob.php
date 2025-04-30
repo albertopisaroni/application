@@ -9,7 +9,6 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Support\Facades\Log;
 
 class SendInvoiceToSdiJob implements ShouldQueue
 {
@@ -26,11 +25,6 @@ class SendInvoiceToSdiJob implements ShouldQueue
     {
         $invoice = Invoice::findOrFail($this->invoiceId);
         $xml     = $xmlGen->generate($invoice);
-
-        Log::info('Invio fattura al SDI', [
-            'uuid' => $invoice->uuid,
-            'xml'  => $xml,
-        ]);
 
         $resp = Http::withHeaders([
             'Content-Type'  => 'application/xml',

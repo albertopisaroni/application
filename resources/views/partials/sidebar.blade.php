@@ -8,6 +8,8 @@
         str_starts_with($path, 'spese') => 'spese',
         str_starts_with($path, 'tasse') => 'tasse',
         str_starts_with($path, 'documenti') => 'documenti',
+        str_starts_with($path, 'automazioni') => 'automazioni',
+        str_starts_with($path, 'admin') => 'admin',
         default => 'dashboard',
     };
 
@@ -32,9 +34,26 @@
             <!-- Navigazione -->
             <nav class="space-y-1 pt-3">
 
+                @if (Auth::user()->admin)
+
+                    <a href="#" @click.prevent="selected = 'admin'; mainSidebar = true; secondarySidebar = true; animateBars = true; setTimeout(() => animateBars = false, 500);"
+                        class="hover:scale-1015 transform  flex space-x-2 items-center py-1.5 text-[#050505] px-1.5 rounded hover:border-[#f5f5f5] mb-2 hover:bg-[#f5f5f5] text-[14px] border transition duration-200 ease-in"
+                        :class="selected === 'admin' ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent'">
+
+                        <svg class="flex-shrink-0" width="18" height="18" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                        </svg>
+
+                        
+                            
+                        <span class="truncate block min-w-0">Admin</span>
+                    </a>
+
+                @endif
+
                 <!-- Dashboard manuale -->
                 <a href="{{ route('dashboard') }}" @click.prevent="selected = 'dashboard'; mainSidebar = false; secondarySidebar = false; setTimeout(() => Livewire.navigate('/'), 200); animateBars = true; setTimeout(() => animateBars = false, 500);"
-                    class="hover:scale-1015 transform  flex items-center space-x-2 text-[#050505] py-1.5 px-2 rounded hover:border-[#f5f5f5] hover:bg-[#f5f5f5] text-[14px] mb-5 border transition duration-200 ease-in"
+                    class="hover:scale-1015 transform  flex items-center space-x-2 text-[#050505] py-1.5 px-1.5 rounded hover:border-[#f5f5f5] hover:bg-[#f5f5f5] text-[14px] !mb-5 border transition duration-200 ease-in"
                     :class="selected === 'dashboard' ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent'">
                     <svg class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect class="stroke-[#050505]" x="0.6" y="9.21523" width="6.18462" height="6.18462" rx="1.4" stroke-width="1.2"/>
@@ -58,7 +77,7 @@
                         { name: 'Contatti', value: 'contatti', icon: 'contatti' }
                     ]" :key="item.value">
                     <a href="#" @click.prevent="selected = item.value; mainSidebar = true; secondarySidebar = true; animateBars = true; setTimeout(() => animateBars = false, 500);" 
-                        class="hover:scale-1015 transform  flex  items-center py-1.5 text-[#050505] px-2 rounded hover:border-[#f5f5f5] hover:bg-[#f5f5f5] text-[14px] border transition duration-200 ease-in"
+                        class="hover:scale-1015 transform  flex  items-center py-1.5 text-[#050505] px-1.5 rounded hover:border-[#f5f5f5] hover:bg-[#f5f5f5] text-[14px] border transition duration-200 ease-in"
                         :class="selected === item.value ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent'">
 
                             <template x-if="item.icon === 'invoice'">
@@ -218,6 +237,27 @@
             class="w-[250px] h-full absolute left-0 transition-all duration-200 overflow-hidden border-r border-[#E8E8E8] px-4 pt-8 pb-6 "
         >
 
+        @if (Auth::user()->admin)
+            <!-- Admin -->
+            <div x-show="selected === 'admin'" x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transitidivon:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            x-cloak
+            class="absolute w-[calc(100%-2rem)]">
+                    <div>
+                        <h2 class="text-[16px] font-normal text-[#050505] mb-2">Admin</h2>
+                        <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Sito internet</h3>
+                        <nav class="space-y-1 text-sm">
+                            <a href="{{ route('admin.registrations.index') }}" wire:navigate class="block rounded py-1.5 px-2 hover:bg-gray-100">Registrazioni</a>
+                        </nav>
+                    </div>
+                </div>
+        @endif
+
+
 <div x-show="selected === 'dashboard'" x-transition:enter="transition ease-out duration-200"
     x-transition:enter-start="opacity-0"
     x-transition:enter-end="opacity-100"
@@ -300,7 +340,7 @@
     
 
         <!-- Dashboard o fallback -->
-        <div x-show="!['fatture', 'contatti', 'email', 'dashboard'].includes(selected)" x-transition:enter="transition ease-out duration-200"
+        <div x-show="!['fatture', 'contatti', 'email', 'dashboard', 'admin'].includes(selected)" x-transition:enter="transition ease-out duration-200"
     x-transition:enter-start="opacity-0"
     x-transition:enter-end="opacity-100"
     x-transition:leave="transition ease-in duration-200"

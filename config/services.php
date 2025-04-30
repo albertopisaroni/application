@@ -35,6 +35,9 @@ return [
         'sdi' => [
             'token' => env('OPENAPI_SDI_TOKEN'),
             'url' => env('OPENAPI_SDI_URL'),
+            'callback' => [
+                'token' => env('OPENAPI_SDI_CALLBACK_TOKEN'),
+            ],
         ],
         'company' => [
             'token' => env('OPENAPI_COMPANY_TOKEN'),

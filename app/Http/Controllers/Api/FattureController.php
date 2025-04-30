@@ -20,7 +20,10 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use App\Models\InvoiceTemplate;
+use App\Models\Contact;
+
 
 
 
@@ -99,6 +102,8 @@ class FattureController extends Controller
  * @bodyParam articoli.prezzo number required Prezzo unitario. Example: 150
  * @bodyParam articoli.iva number required Aliquota IVA (%). Example: 0
  * @bodyParam articoli.descrizione string nullable Descrizione articolo. Example: Consulenza Maggio 2025
+ * 
+ * @bodyParam emails string[] nullable Altre email a cui inviare la fattura. Example: ["info@azienda.it", "contabilita@azienda.it"]
  *
  * @bodyParam scadenze object[] nullable Scadenze di pagamento (se omesso, 30gg da issue_date). Example: [{"date":"2025-05-30","value":50,"type":"percent"},{"date":"2025-06-30","value":50,"type":"percent"}]
  * @bodyParam scadenze.date date required Data scadenza (YYYY-MM-DD). Example: 2025-05-30
@@ -195,11 +200,13 @@ public function nuovaPiva(NuovaPivaRequest $request)
     return response()->json([
         'success' => true,
         'data' => [
-            'id'  => $invoice->id,
+            'fattura'  => $invoice->invoice_number,
             'url' => config('app.fatture_url')."/{$invoice->uuid}/pdf",
         ],
     ], 201);
 }
+
+
 
     protected function creaFattura(array $data, bool $dispatchJob): Invoice
     {
@@ -213,6 +220,8 @@ public function nuovaPiva(NuovaPivaRequest $request)
                 $c
             );
 
+  
+
             // NUMBERING
             $num = InvoiceNumbering::where('name',$data['numerazione'])->firstOrFail();
 
@@ -221,7 +230,7 @@ public function nuovaPiva(NuovaPivaRequest $request)
                 'company_id'        => $company->id,
                 'client_id'         => $client->id,
                 'numbering_id'      => $num->id,
-                'invoice_number'    => $num->getNextNumericPart(),
+                'invoice_number'    => $num->prefix . $num->getNextNumericPart(),
                 'issue_date'        => $data['issue_date'],
                 'fiscal_year'       => Carbon::parse($data['issue_date'])->year,
                 'withholding_tax'   => 0,
@@ -329,8 +338,23 @@ public function nuovaPiva(NuovaPivaRequest $request)
             $invoice->save();
 
             // INVIO SDI?
-            if (($data['invia_sdi'] ?? true) && $company->sdi_enabled) {
+            if (($data['invia_sdi'] ?? true)) {
                 SendInvoiceToSdiJob::dispatch($invoice->id);
+            }
+
+            if (!empty($data['emails'])) {
+                foreach ($data['emails'] as $email) {
+                    Contact::firstOrCreate(
+                        ['client_id' => $client->id, 'email' => $email],
+                    );
+                }
+
+                $recipients = $client->contacts()->where('receives_invoice_copy', 1)->pluck('email')->toArray();
+
+                foreach ($recipients as $email) {
+                    \Mail::to($email)->send(new \App\Mail\InvoiceMail($invoice));
+                }
+
             }
 
             DB::commit();

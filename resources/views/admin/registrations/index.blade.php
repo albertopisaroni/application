@@ -30,42 +30,42 @@
             <thead>
                 <tr class="bg-gray-100 text-sm text-gray-700 uppercase tracking-wider">
                 <th class="px-4 py-2 border">
-                    <a href="{{ route('app.admin.registrations.index', ['sort_by' => 'behavior_profile', 'direction' => $sortBy === 'behavior_profile' && $direction === 'asc' ? 'desc' : 'asc']) }}">
+                    <a href="{{ route('admin.registrations.index', ['sort_by' => 'behavior_profile', 'direction' => $sortBy === 'behavior_profile' && $direction === 'asc' ? 'desc' : 'asc']) }}">
                         Profilo @if($sortBy === 'behavior_profile') ({{ $direction === 'asc' ? '▲' : '▼' }}) @endif
                     </a>
                 </th>
                 <th class="px-4 py-2 border">
-                    <a href="{{ route('app.admin.registrations.index', ['sort_by' => 'contacted', 'direction' => $sortBy === 'contacted' && $direction === 'asc' ? 'desc' : 'asc']) }}">
+                    <a href="{{ route('admin.registrations.index', ['sort_by' => 'contacted', 'direction' => $sortBy === 'contacted' && $direction === 'asc' ? 'desc' : 'asc']) }}">
                         Contattato @if($sortBy === 'contacted') ({{ $direction === 'asc' ? '▲' : '▼' }}) @endif
                     </a>
                 </th>
                 <th class="px-4 py-2 border">
-                    <a href="{{ route('app.admin.registrations.index', ['sort_by' => 'project_type', 'direction' => $sortBy === 'project_type' && $direction === 'asc' ? 'desc' : 'asc']) }}">
+                    <a href="{{ route('admin.registrations.index', ['sort_by' => 'project_type', 'direction' => $sortBy === 'project_type' && $direction === 'asc' ? 'desc' : 'asc']) }}">
                         Tipo @if($sortBy === 'project_type') ({{ $direction === 'asc' ? '▲' : '▼' }}) @endif
                     </a>
                 </th>
                 <th class="px-4 py-2 border">
-                    <a href="{{ route('app.admin.registrations.index', ['sort_by' => 'fullname', 'direction' => $sortBy === 'fullname' && $direction === 'asc' ? 'desc' : 'asc']) }}">
+                    <a href="{{ route('admin.registrations.index', ['sort_by' => 'fullname', 'direction' => $sortBy === 'fullname' && $direction === 'asc' ? 'desc' : 'asc']) }}">
                         Nome @if($sortBy === 'fullname') ({{ $direction === 'asc' ? '▲' : '▼' }}) @endif
                     </a>
                 </th>
                 <th class="px-4 py-2 border">
-                    <a href="{{ route('app.admin.registrations.index', ['sort_by' => 'email', 'direction' => $sortBy === 'email' && $direction === 'asc' ? 'desc' : 'asc']) }}">
+                    <a href="{{ route('admin.registrations.index', ['sort_by' => 'email', 'direction' => $sortBy === 'email' && $direction === 'asc' ? 'desc' : 'asc']) }}">
                         Email @if($sortBy === 'email') ({{ $direction === 'asc' ? '▲' : '▼' }}) @endif
                     </a>
                 </th>
                 <th class="px-4 py-2 border">
-                    <a href="{{ route('app.admin.registrations.index', ['sort_by' => 'phone', 'direction' => $sortBy === 'phone' && $direction === 'asc' ? 'desc' : 'asc']) }}">
+                    <a href="{{ route('admin.registrations.index', ['sort_by' => 'phone', 'direction' => $sortBy === 'phone' && $direction === 'asc' ? 'desc' : 'asc']) }}">
                         Telefono @if($sortBy === 'phone') ({{ $direction === 'asc' ? '▲' : '▼' }}) @endif
                     </a>
                 </th>
                 <th class="px-4 py-2 border">
-                    <a href="{{ route('app.admin.registrations.index', ['sort_by' => 'registered', 'direction' => $sortBy === 'registered' && $direction === 'asc' ? 'desc' : 'asc']) }}">
+                    <a href="{{ route('admin.registrations.index', ['sort_by' => 'registered', 'direction' => $sortBy === 'registered' && $direction === 'asc' ? 'desc' : 'asc']) }}">
                         Stato @if($sortBy === 'registered') ({{ $direction === 'asc' ? '▲' : '▼' }}) @endif
                     </a>
                 </th>
                 <th class="px-4 py-2 border">
-                    <a href="{{ route('app.admin.registrations.index', ['sort_by' => 'created_at', 'direction' => $sortBy === 'created_at' && $direction === 'asc' ? 'desc' : 'asc']) }}">
+                    <a href="{{ route('admin.registrations.index', ['sort_by' => 'created_at', 'direction' => $sortBy === 'created_at' && $direction === 'asc' ? 'desc' : 'asc']) }}">
                         Creato il @if($sortBy === 'created_at') ({{ $direction === 'asc' ? '▲' : '▼' }}) @endif
                     </a>
                 </th>
@@ -84,7 +84,7 @@
                     <td class="px-4 py-2 border font-semibold">{{ $registration->registered ? '🚀 Registrato' : '⚠️ Non registrato' }}</td>
                     <td class="px-4 py-2 border">{{ $registration->created_at->format('d/m/Y H:i') }}</td>
                     <td class="px-4 py-2 border">
-                        <a href="{{ route('app.admin.registrations.show', $registration) }}" class="text-indigo-600 underline">Dettagli</a>
+                        <a href="{{ route('admin.registrations.show', $registration) }}" class="text-indigo-600 underline">Dettagli</a>
                     </td>
                 </tr>
                 @endforeach

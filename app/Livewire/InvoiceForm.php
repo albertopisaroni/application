@@ -394,6 +394,7 @@ class InvoiceForm extends Component
             Storage::disk('s3')->put($path, $encrypted);
 
             $invoice->pdf_path = $path;
+            $invoice->pdf_url  = config('app.fatture_url')."/{$invoice->uuid}/pdf";
             $invoice->save();
 
             $recipients = $client->contacts()
@@ -404,7 +405,7 @@ class InvoiceForm extends Component
             if (! empty($recipients)) {
                 foreach ($recipients as $email) {
                     \Mail::to($email)
-                        ->send(new \App\Mail\InvoiceMail($invoice, $finalPath));
+                        ->send(new \App\Mail\InvoiceMail($invoice));
                     Log::info("📤 Fattura inviata a: $email");
                 }
             } else {

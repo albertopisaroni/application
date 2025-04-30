@@ -29,12 +29,12 @@ class AdminController extends Controller
 
         $registrations = $query->orderBy($sortBy, $direction)->paginate(20);
 
-        return view('app.admin.registrations.index', compact('registrations', 'sortBy', 'direction'));
+        return view('admin.registrations.index', compact('registrations', 'sortBy', 'direction'));
     }
 
     public function show(Registration $registration)
     {
-        return view('app.admin.registrations.show', compact('registration'));
+        return view('admin.registrations.show', compact('registration'));
     }
 
 }

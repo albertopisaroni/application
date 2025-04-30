@@ -423,7 +423,7 @@
 
         </div>
         <div class="sl-flex sl-items-center sl-px-4 sl-py-3 sl-border-t">
-            Last updated: April 29, 2025
+            Last updated: April 30, 2025
         </div>
 
     </div>
@@ -2693,7 +2693,7 @@ response.json()</code></pre>                                        </div>
                 <span>Example:</span> <!-- <span> important for spacing -->
                 <div class="sl-flex sl-flex-1 sl-flex-wrap" style="gap: 4px;">
                     <div class="sl-max-w-full sl-break-all sl-px-1 sl-bg-canvas-tint sl-text-muted sl-rounded sl-border">
-                        2025-04-29T21:17:09
+                        2025-04-30T16:59:23
                     </div>
                 </div>
             </div>
@@ -2745,7 +2745,7 @@ response.json()</code></pre>                                        </div>
                 <span>Example:</span> <!-- <span> important for spacing -->
                 <div class="sl-flex sl-flex-1 sl-flex-wrap" style="gap: 4px;">
                     <div class="sl-max-w-full sl-break-all sl-px-1 sl-bg-canvas-tint sl-text-muted sl-rounded sl-border">
-                        percent
+                        amount
                     </div>
                 </div>
             </div>
@@ -3040,9 +3040,9 @@ response.json()</code></pre>                                        </div>
         }
     },
     "scadenze": {
-        "date": "2025-04-29T21:17:09",
+        "date": "2025-04-30T16:59:23",
         "value": 45,
-        "type": "percent",
+        "type": "amount",
         "*": {
             "date": "consequatur",
             "value": 11613.31890586,
@@ -3710,6 +3710,31 @@ response.json()</code></pre>                                        </div>
     <div class="expandable sl-text-sm sl-border-l sl-ml-px">
         <div class="sl-flex sl-relative sl-max-w-full sl-py-2 sl-pl-3">
     <div class="sl-w-1 sl-mt-2 sl-mr-3 sl--ml-3 sl-border-t"></div>
+    <div class="sl-stack sl-stack--vertical sl-stack--1 sl-flex sl-flex-1 sl-flex-col sl-items-stretch sl-max-w-full sl-ml-2 ">
+        <div class="sl-flex sl-items-center sl-max-w-full">
+                                        <div class="sl-flex sl-items-baseline sl-text-base">
+                    <div class="sl-font-mono sl-font-semibold sl-mr-2">emails</div>
+                                            <span class="sl-truncate sl-text-muted">string[]</span>
+                                    </div>
+                                    </div>
+                <div class="sl-prose sl-markdown-viewer" style="font-size: 12px;">
+            <p>nullable Altre email a cui inviare la fattura.</p>
+        </div>
+                                            <div class="sl-stack sl-stack--horizontal sl-stack--2 sl-flex sl-flex-row sl-items-baseline sl-text-muted">
+                <span>Example:</span> <!-- <span> important for spacing -->
+                <div class="sl-flex sl-flex-1 sl-flex-wrap" style="gap: 4px;">
+                    <div class="sl-max-w-full sl-break-all sl-px-1 sl-bg-canvas-tint sl-text-muted sl-rounded sl-border">
+                        [&quot;info@azienda.it&quot;,&quot;contabilita@azienda.it&quot;]
+                    </div>
+                </div>
+            </div>
+            </div>
+</div>
+
+            </div>
+    <div class="expandable sl-text-sm sl-border-l sl-ml-px">
+        <div class="sl-flex sl-relative sl-max-w-full sl-py-2 sl-pl-3">
+    <div class="sl-w-1 sl-mt-2 sl-mr-3 sl--ml-3 sl-border-t"></div>
     <div class="sl-stack sl-stack--vertical sl-stack--1 sl-flex sl-flex-1 sl-flex-col sl-items-stretch sl-max-w-full sl-ml-2  sl-cursor-pointer ">
         <div class="sl-flex sl-items-center sl-max-w-full">
                             <div class="sl-flex sl-justify-center sl-w-8 sl--ml-8 sl-pl-3 sl-text-muted expansion-chevrons" role="button">
@@ -4106,6 +4131,10 @@ response.json()</code></pre>                                        </div>
     "intestazione": "Intestazione personalizzata",
     "note": "Grazie per averci scelto",
     "invia_sdi": true,
+    "emails": [
+        "info@azienda.it",
+        "contabilita@azienda.it"
+    ],
     "articoli": [
         {
             "nome": "Consulenza informatica",
@@ -4229,6 +4258,10 @@ Controlla la console degli strumenti di sviluppo per ulteriori dettagli.</p>
     \"intestazione\": \"Intestazione personalizzata\",
     \"note\": \"Grazie per averci scelto\",
     \"invia_sdi\": true,
+    \"emails\": [
+        \"info@azienda.it\",
+        \"contabilita@azienda.it\"
+    ],
     \"articoli\": [
         {
             \"nome\": \"Consulenza informatica\",
@@ -4278,6 +4311,10 @@ let body = {
     "intestazione": "Intestazione personalizzata",
     "note": "Grazie per averci scelto",
     "invia_sdi": true,
+    "emails": [
+        "info@azienda.it",
+        "contabilita@azienda.it"
+    ],
     "articoli": [
         {
             "nome": "Consulenza informatica",
@@ -4370,6 +4407,10 @@ $response = $client-&gt;post(
                 'intestazione' =&gt; 'Intestazione personalizzata',
                 'note' =&gt; 'Grazie per averci scelto',
                 'invia_sdi' =&gt; true,
+                'emails' =&gt; [
+                    'info@azienda.it',
+                    'contabilita@azienda.it',
+                ],
                 'articoli' =&gt; [
                     $o[0],
                 ],
@@ -4404,6 +4445,10 @@ payload = {
     "intestazione": "Intestazione personalizzata",
     "note": "Grazie per averci scelto",
     "invia_sdi": true,
+    "emails": [
+        "info@azienda.it",
+        "contabilita@azienda.it"
+    ],
     "articoli": [
         {
             "nome": "Consulenza informatica",

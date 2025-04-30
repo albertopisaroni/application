@@ -21,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
         $apiDomain = parse_url(config('app.api_url'), PHP_URL_HOST);
         $docsDomain = parse_url(config('app.docs_url'), PHP_URL_HOST);
         $fatturaDomain = parse_url(config('app.fatture_url'), PHP_URL_HOST);
+        $benvenutoDomain = parse_url(config('app.benvenuto_url'), PHP_URL_HOST);
 
         // 🔐 API Routes
         Route::middleware(['api', ApiTokenMiddleware::class])
@@ -28,8 +29,14 @@ class AppServiceProvider extends ServiceProvider
             ->group(base_path('routes/api.php'));
 
         // 📄 Fatture Routes
-        Route::domain($fatturaDomain)
+        Route::middleware(['web'])
+            ->domain($fatturaDomain)
             ->group(base_path('routes/fatture.php'));
+
+        // 🏠 Benvenuto Route
+        Route::middleware(['web'])
+            ->domain($benvenutoDomain)
+            ->group(base_path('routes/benvenuto.php'));
 
         // 📄 Docs Routes
         Route::domain($docsDomain)

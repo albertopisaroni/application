@@ -40,6 +40,9 @@ class NuovaPivaRequest extends FormRequest
             'note'             => 'nullable|string',
             'invia_sdi'        => 'nullable|boolean',
 
+            'emails'     => 'nullable|array',
+            'emails.*'   => 'email',
+
             'articoli'               => 'required|array|min:1',
             'articoli.*.nome'        => 'required|string',
             'articoli.*.quantita'    => 'required|numeric|min:0.01',
@@ -52,6 +55,25 @@ class NuovaPivaRequest extends FormRequest
             'scadenze.*.value'       => 'required_with:scadenze|numeric|min:0',
             'scadenze.*.type'        => 'required_with:scadenze|in:percent,amount',
         ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $scadenze = $this->input('scadenze');
+            $issueDate = $this->input('issue_date') ?? now()->toDateString();
+
+            if (is_array($scadenze)) {
+                foreach ($scadenze as $index => $scadenza) {
+                    if (!empty($scadenza['date']) && $scadenza['date'] <= $issueDate) {
+                        $validator->errors()->add(
+                            "scadenze.$index.date",
+                            "La scadenza n.{$index} deve essere successiva alla data di emissione ({$issueDate})."
+                        );
+                    }
+                }
+            }
+        });
     }
 
     protected function failedValidation(Validator $validator)

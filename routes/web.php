@@ -37,8 +37,6 @@ Route::get('/upload-document/{uuid}', function ($uuid) {
 })->name('registration.upload.mobile');
 
 
-Route::get('/onboarding/{uuid?}', function ($uuid = null) { return view('app.onboarding', ['uuid' => $uuid]); })->name('guest.onboarding');
-
 
 
 // Social login

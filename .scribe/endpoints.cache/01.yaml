@@ -301,7 +301,7 @@ endpoints:
         name: 'scadenze[].date'
         description: 'This field is required when <code>scadenze</code> is present.  validation.date.'
         required: false
-        example: '2025-04-29T21:17:09'
+        example: '2025-04-30T16:59:23'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -321,7 +321,7 @@ endpoints:
         name: 'scadenze[].type'
         description: 'This field is required when <code>scadenze</code> is present.'
         required: false
-        example: percent
+        example: amount
         type: string
         enumValues:
           - percent
@@ -567,6 +567,18 @@ endpoints:
         exampleWasSpecified: true
         nullable: true
         custom: []
+      emails:
+        name: emails
+        description: 'nullable Altre email a cui inviare la fattura.'
+        required: false
+        example:
+          - info@azienda.it
+          - contabilita@azienda.it
+        type: 'string[]'
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
       articoli:
         name: articoli
         description: 'Elenco degli articoli.'
@@ -655,7 +667,7 @@ endpoints:
         name: 'scadenze[].date'
         description: 'This field is required when <code>scadenze</code> is present.  validation.date.'
         required: false
-        example: '2025-04-29T21:17:09'
+        example: '2025-04-30T16:59:23'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -773,6 +785,9 @@ endpoints:
       intestazione: 'Intestazione personalizzata'
       note: 'Grazie per averci scelto'
       invia_sdi: true
+      emails:
+        - info@azienda.it
+        - contabilita@azienda.it
       articoli:
         -
           nome: 'Consulenza informatica'

@@ -5,7 +5,9 @@
     <td class="border-b py-3 pl-2">
       {{ $item['name'] }}
       @if(! empty($item['description']))
-        – {{ $item['description'] }}
+        <div style="font-size: 0.75rem; line-height: 1rem; color: rgb(107 114 128); padding-right:.5rem; word-break: break-word; overflow-wrap: break-word;" class="mt-1">
+          {{ $item['description'] }}
+        </div>
       @endif
     </td>
     <td class="border-b py-3 pl-2 text-right">

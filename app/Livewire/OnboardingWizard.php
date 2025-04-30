@@ -118,19 +118,19 @@ class OnboardingWizard extends Component
     public function onMouseMoved($x, $y)
     {
         if (auth()->user()?->admin) return;
-        broadcast(new \App\Events\MouseMoved($this->uuid, $x, $y));
+        // broadcast(new \App\Events\MouseMoved($this->uuid, $x, $y));
     }
 
     public function onMouseClicked($x, $y)
     {
         if (auth()->user()?->admin) return;
-        broadcast(new \App\Events\MouseClicked($this->uuid, $x, $y));
+        // broadcast(new \App\Events\MouseClicked($this->uuid, $x, $y));
     }
 
     public function onFocusChanged($name)
     {
         if (auth()->user()?->admin) return;
-        broadcast(new \App\Events\FocusChanged($this->uuid, $name));
+        // broadcast(new \App\Events\FocusChanged($this->uuid, $name));
     }
 
 
@@ -149,7 +149,7 @@ class OnboardingWizard extends Component
             'step_history' => json_encode($this->stepHistory),
         ]);
 
-        broadcast(new StepUpdated($this->uuid, $this->step))->toOthers();
+        // broadcast(new StepUpdated($this->uuid, $this->step))->toOthers();
 
     }
 
@@ -164,7 +164,7 @@ class OnboardingWizard extends Component
                 'step_history' => json_encode($this->stepHistory),
             ]);
 
-            broadcast(new StepUpdated($this->uuid, $this->step))->toOthers();
+            // broadcast(new StepUpdated($this->uuid, $this->step))->toOthers();
         
             
         }
