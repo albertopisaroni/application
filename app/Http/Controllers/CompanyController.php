@@ -12,15 +12,37 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use App\Mail\CompanyInvite;
 use App\Mail\CompanyAdded;
+use Illuminate\Support\Facades\Storage;
+
 
 
 
 class CompanyController extends Controller
 {
     public function create()
-{
-    return view('company.create');
-}
+    {
+        return view('company.create');
+    }
+
+    public function uploadLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => 'required|image|max:2048',
+        ]);
+
+        $companyId = auth()->user()->current_company_id;
+        $company = Company::findOrFail($companyId);
+
+        $file = $request->file('logo');
+        $filename = 'logo.' . $file->getClientOriginalExtension();
+        $path = "clienti/{$company->slug}/loghi/{$filename}";
+
+        Storage::disk('s3')->put($path, file_get_contents($file));
+
+        $company->update(['logo_path' => $path]);
+
+        return redirect()->back()->with('success', 'Logo aggiornato con successo.');
+    }
 
     public function store(Request $request)
     {

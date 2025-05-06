@@ -57,4 +57,84 @@ class Invoice extends Model
     {
         return $this->hasMany(InvoiceItem::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(InvoicePayment::class);
+    }
+
+    public function getPaymentStatusAttribute(): string
+    {
+        if ($this->total <= 0) {
+            return 'Pagata';
+        }
+    
+        $paid = $this->payments()->sum('amount');
+    
+        if ($paid <= 0) return 'Non pagata';
+        if ($paid < $this->total) return 'Parziale';
+    
+        return 'Pagata';
+    }
+
+    public function getDeadlineDateAttribute()
+    {
+        $date = $this->paymentSchedules()
+            ->orderByDesc('due_date')
+            ->value('due_date');
+
+        return $date ? \Carbon\Carbon::parse($date) : null;
+    }
+
+    public function getNettoPostTaxAttribute(): float
+    {
+        $company           = $this->company;
+        $totale            = $this->total;
+        
+        if ($totale <= 0) return 0.00;
+    
+        $anno              = $this->issue_date->year;
+        $coeff             = $company->coefficiente / 100;
+        $aliquotaImposta   = $company->startup ? 0.05 : 0.15;
+    
+        // imponibile forfettario
+        $imponibile        = round($totale * $coeff, 2);
+    
+        // bollo
+        $bollo             = $totale > 77 ? 2 : 0;
+    
+        // fatturato annuo (e fallback se zero)
+        $fatturatoAnnuale  = Invoice::where('company_id', $company->id)
+                                  ->whereYear('issue_date', $anno)
+                                  ->sum('total');
+        $fatturatoAnnuale  = $fatturatoAnnuale > 0
+                          ? $fatturatoAnnuale
+                          : $totale;
+    
+        // quota fissa proporzionale
+        $contributiFissi   = $company->gestione_separata ? 0 : 4200;
+        $quotaFissa        = round(($totale / $fatturatoAnnuale) * $contributiFissi, 2);
+    
+        if ($company->gestione_separata) {
+            // gestione separata
+            $inpsPercentuale = round($imponibile * 0.2607, 2);
+            $inps            = $inpsPercentuale;
+            $imposta         = round($imponibile * $aliquotaImposta, 2);
+        } else {
+            // artigiani / commercianti
+            $inpsPercentuale = round($imponibile * 0.24, 2);
+            $inps            = $inpsPercentuale + $quotaFissa;
+            // IRPEF sul solo imponibile netto INPS%
+            $impostaBase     = $imponibile - $inpsPercentuale;
+            $imposta         = round($impostaBase * $aliquotaImposta, 2);
+        }
+    
+        // calcolo netto
+        $netto = $totale
+               - $inps
+               - $imposta
+               - $bollo;
+    
+        return round($netto, 2);
+    }
 }

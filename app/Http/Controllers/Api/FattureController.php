@@ -327,7 +327,7 @@ public function nuovaPiva(NuovaPivaRequest $request)
             $html = $renderer->renderHtml();
             $pdf  = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->output();
             $year = Carbon::parse($invoice->issue_date)->format('Y');
-            $path = "{$company->slug}/fatture/{$num->id}/{$year}/{$invoice->invoice_number}.pdf";
+            $path = "clienti/{$company->slug}/fatture/{$num->id}/{$year}/{$invoice->invoice_number}.pdf";
 
             $encrypted = encrypt($pdf);
             Storage::disk('s3')->put($path, $encrypted);

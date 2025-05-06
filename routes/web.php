@@ -72,7 +72,6 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
 
         Route::get('/abbonamenti', [AbbonamentiController::class, 'lista'])->name('abbonamenti.lista');
 
-
         // FATTURE
         Route::get('/fatture', [InvoiceController::class, 'list'])->name('fatture.list');
         Route::get('/fatture/nuova', [InvoiceController::class, 'create'])->name('fatture.nuova');
@@ -109,6 +108,8 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
 
             Route::delete('/tokens/{id}', [CompanyController::class, 'deleteToken'])->name('company.tokens.delete');
             Route::post('/tokens/{id}/renew', [CompanyController::class, 'renewToken'])->name('company.tokens.renew');
+
+            Route::post('/logo', [CompanyController::class, 'uploadLogo'])->name('company.logo.upload');
         });
 
 

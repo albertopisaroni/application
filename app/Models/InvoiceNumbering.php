@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class InvoiceNumbering extends Model
 {
@@ -16,7 +17,8 @@ class InvoiceNumbering extends Model
         'default_payment_method_id',
         'name',
         'template_id',
-        'logo_base64',        
+        'logo_base64',
+        'logo_base64_square',
     ];
 
     // Ogni numerazione appartiene a una società
@@ -85,5 +87,21 @@ class InvoiceNumbering extends Model
     {
         // se la tua colonna si chiama `template_id`:
         return $this->belongsTo(InvoiceTemplate::class, 'template_id');
+    }
+
+
+    public function getLogoAttribute(): string
+    {
+        if ($this->type === 'standard' && !$this->logo_square_path) {
+            return $this->company->logo;
+        }
+
+        if (!empty($this->logo_square_path) && Storage::disk('s3')->exists($this->logo_square_path)) {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->logo_square_path, now()->addMinutes(5)
+            );
+        }
+
+        return 'https://ui-avatars.com/api/?format=svg&name=' . urlencode($this->name);
     }
 }

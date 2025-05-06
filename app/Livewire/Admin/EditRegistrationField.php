@@ -26,7 +26,7 @@ class EditRegistrationField extends Component
     {
         if (in_array($this->field, ['document_front', 'document_back'])) {
             if ($this->value && $this->value->isValid()) {
-                $folder = 'newo/registrazioni/' . $this->registration->uuid;
+                $folder = 'registrazioni/' . $this->registration->uuid;
                 $ext = $this->value->getClientOriginalExtension();
                 
                 $path = $this->value->storeAs($folder, $this->field === 'document_front' ? "fronte.$ext" : "retro.$ext", 's3');

@@ -27,6 +27,7 @@
         "webklex/laravel-imap": "^6.1"
     },
     "require-dev": {
+        "barryvdh/laravel-debugbar": "^3.15",
         "fakerphp/faker": "^1.23",
         "knuckleswtf/scribe": "^5.1",
         "laravel/pail": "^1.2.2",

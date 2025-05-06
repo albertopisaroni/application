@@ -17,7 +17,19 @@
     $secondarySidebar = $selected !== 'dashboard' ? 'true' : 'false';
 @endphp
 
-<div x-data="{ selected: '{{ $selected }}', mainSidebar: {{ $mainSidebar }}, secondarySidebar: {{ $secondarySidebar }}, animateBars: false  }" class="flex h-screen bg-white text-sm text-gray-800 font-normal lg:fixed lg:inset-y-0 lg:z-40" wire:ignore>
+<div x-data="{ 
+        selected: '{{ $selected }}', 
+        mainSidebar: {{ $mainSidebar }}, 
+        secondarySidebar: {{ $secondarySidebar }},
+        animateBars: false,
+        tooltipText: '', 
+        tooltipX: 0, 
+        tooltipY: 0, 
+        showTooltip: false,
+        tooltipTimeout: null
+    }"
+    class="flex h-screen bg-white text-sm text-gray-800 font-normal lg:fixed lg:inset-y-0 lg:z-40" wire:ignore>
+
     <!-- Sidebar principale -->
     <div
         :class="mainSidebar ? '!w-[65px]' : '' "
@@ -26,63 +38,156 @@
         <div>
             <!-- Header con logo e nome società -->
             <a href="{{ route('company.show') }}" wire:navigate class="flex items-center mb-6 space-x-2 my-1">
-                <img class="w-8 h-8 rounded-full" alt="" src=" https://ticket.holdingshake.com/storage/project-photos/wl1rnS4AxsHuXutoULKPaMhqyVVxlaH4CecmpEon.png ">
-                <span class="text-sm font-normal uppercase overflow-hidden text-ellipsis whitespace-nowrap mx-2 mr-2">HOLDINGS SHAKE DI PISARONI ALBERTO</span>
-                <svg class="size-5 mt-[2px] mr-1" xmlns="http://www.w3.org/2000/svg" width="8" height="8" fill="currentColor" viewBox="0 0 8 8" class="cMc"><path d="M5.493 1.999a.234.234 0 01-.175-.075L3.998.604l-1.323 1.32c-.1.1-.255.1-.355 0-.1-.1-.1-.255 0-.355L3.819.075c.1-.1.255-.1.355 0l1.499 1.499c.1.1.1.255 0 .355a.251.251 0 01-.175.075l-.005-.005zm0 3.997a.234.234 0 00-.175.075l-1.32 1.32L2.68 6.07c-.1-.1-.255-.1-.355 0-.1.1-.1.255 0 .355l1.499 1.499c.1.1.255.1.355 0l1.499-1.499c.1-.1.1-.255 0-.355a.251.251 0 00-.175-.075h-.01z"></path></svg>
+                <img class="w-8 h-8 rounded-full" alt="" src="{{ Auth::user()->currentCompany()?->logo }}">
+                <span class="text-sm font-normal uppercase overflow-hidden text-ellipsis whitespace-nowrap mx-2 !mr-4">{{ Auth::user()->currentCompany()?->name }}</span>
+                <svg class="size-3.5 absolute right-4 mt-[2px] mr-1" :class="mainSidebar ? 'hidden' : '' " xmlns="http://www.w3.org/2000/svg" width="8" height="8" fill="currentColor" viewBox="0 0 8 8" class="cMc"><path d="M5.493 1.999a.234.234 0 01-.175-.075L3.998.604l-1.323 1.32c-.1.1-.255.1-.355 0-.1-.1-.1-.255 0-.355L3.819.075c.1-.1.255-.1.355 0l1.499 1.499c.1.1.1.255 0 .355a.251.251 0 01-.175.075l-.005-.005zm0 3.997a.234.234 0 00-.175.075l-1.32 1.32L2.68 6.07c-.1-.1-.255-.1-.355 0-.1.1-.1.255 0 .355l1.499 1.499c.1.1.255.1.355 0l1.499-1.499c.1-.1.1-.255 0-.355a.251.251 0 00-.175-.075h-.01z"></path></svg>
             </a>
 
             <!-- Navigazione -->
             <nav class="space-y-1 pt-3">
 
                 @if (Auth::user()->admin)
-
-                    <a href="#" @click.prevent="selected = 'admin'; mainSidebar = true; secondarySidebar = true; animateBars = true; setTimeout(() => animateBars = false, 500);"
-                        class="hover:scale-1015 transform  flex space-x-2 items-center py-1.5 text-[#050505] px-1.5 rounded hover:border-[#f5f5f5] mb-2 hover:bg-[#f5f5f5] text-[14px] border transition duration-200 ease-in"
+                    <a href="#"
+                        @mouseenter="
+                            if (mainSidebar) {
+                                clearTimeout(tooltipTimeout);
+                                const rect = $event.currentTarget.getBoundingClientRect();
+                                tooltipTimeout = setTimeout(() => {
+                                    showTooltip = true;
+                                    tooltipText = 'Admin';
+                                    tooltipX = rect.right + 8;
+                                    tooltipY = rect.top + rect.height / 2 - 12;
+                                }, 300);
+                            }
+                        "
+                        @mouseleave="
+                            clearTimeout(tooltipTimeout);
+                            showTooltip = false;
+                        "
+                        @click.prevent="
+                            selected = 'admin';
+                            mainSidebar = true;
+                            secondarySidebar = true;
+                            showTooltip = false;
+                            animateBars = true;
+                            setTimeout(() => animateBars = false, 500);
+                        "
+                        class="hover:scale-1015 transform flex space-x-2 items-center py-1.5 text-[#050505] px-1.5 rounded hover:border-[#f5f5f5] mb-2 hover:bg-[#f5f5f5] text-[14px] border transition duration-200 ease-in"
                         :class="selected === 'admin' ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent'">
 
-                        <svg class="flex-shrink-0" width="18" height="18" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                        <svg class="flex-shrink-0" width="18" height="20" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2.08384 4.29424C2.26338 4.16477 2.47593 4.09383 2.68897 4.03377C4.76602 3.44822 6.7364 1.97228 7.36141 1.4745C7.49954 1.3645 7.64235 1.26106 7.80553 1.19361C8.42885 0.935958 9.12856 0.93513 9.75359 1.19313C9.87589 1.24362 9.98634 1.31395 10.0949 1.38952C10.7306 1.83174 13.1395 3.44532 15.2973 4.05941C15.4801 4.11143 15.6619 4.17175 15.8209 4.27588C16.5506 4.75386 17 5.57802 17 6.47134V9.63077C17 12.5155 15.5332 15.1968 13.1187 16.7258L10.1548 18.6026C9.29474 19.1472 8.19952 19.1309 7.35561 18.5609L4.67731 16.7518C2.37993 15.2001 1 12.5877 1 9.79027V6.42418C1 5.57177 1.40935 4.78061 2.08384 4.29424Z" stroke="#282930" stroke-width="1.2" stroke-linecap="round"/>
+                            <path d="M13.8636 16.1195C13.6066 14.3384 12.2285 12.8824 10.4343 12.7519C9.41066 12.6775 8.4567 12.6776 7.43114 12.7524C5.63615 12.8832 4.2571 14.3392 4 16.121M11.177 8.25C11.177 9.49264 10.1696 10.5 8.92695 10.5C7.68431 10.5 6.67695 9.49264 6.67695 8.25C6.67695 7.00736 7.68431 6 8.92695 6C10.1696 6 11.177 7.00736 11.177 8.25Z" stroke="#282930" stroke-width="1.2"/>
                         </svg>
 
-                        
-                            
                         <span class="truncate block min-w-0">Admin</span>
                     </a>
-
                 @endif
 
                 <!-- Dashboard manuale -->
-                <a href="{{ route('dashboard') }}" @click.prevent="selected = 'dashboard'; mainSidebar = false; secondarySidebar = false; setTimeout(() => Livewire.navigate('/'), 200); animateBars = true; setTimeout(() => animateBars = false, 500);"
-                    class="hover:scale-1015 transform  flex items-center space-x-2 text-[#050505] py-1.5 px-1.5 rounded hover:border-[#f5f5f5] hover:bg-[#f5f5f5] text-[14px] !mb-5 border transition duration-200 ease-in"
+                <a href="{{ route('dashboard') }}" 
+                    wire:navigate
+                    @mouseenter="
+                        if (mainSidebar) {
+                            clearTimeout(tooltipTimeout);
+                            const rect = $event.currentTarget.getBoundingClientRect();
+                            tooltipTimeout = setTimeout(() => {
+                                showTooltip = true;
+                                tooltipText = 'Dashboard';
+                                tooltipX = rect.right + 8;
+                                tooltipY = rect.top + rect.height / 2 - 12;
+                            }, 300);
+                        }
+                    "
+                    @mouseleave="
+                        clearTimeout(tooltipTimeout);
+                        showTooltip = false;
+                    "
+                    @click.prevent="
+                        selected = 'dashboard'; 
+                        mainSidebar = false; 
+                        secondarySidebar = false; 
+                        showTooltip = false;
+                        setTimeout(() => Livewire.navigate('/'), 200); 
+                        animateBars = true; 
+                        setTimeout(() => animateBars = false, 500);
+                    "
+                    class="hover:scale-1015 transform flex items-center space-x-2 text-[#050505] py-1.5 px-1.5 rounded hover:border-[#f5f5f5] hover:bg-[#f5f5f5] text-[14px] !mb-5 border transition duration-200 ease-in"
                     :class="selected === 'dashboard' ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent'">
+                    
+                    <!-- Icona -->
                     <svg class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect class="stroke-[#050505]" x="0.6" y="9.21523" width="6.18462" height="6.18462" rx="1.4" stroke-width="1.2"/>
                         <rect class="stroke-[#050505]" x="0.6" y="0.6" width="6.18462" height="6.18462" rx="1.4" stroke-width="1.2"/>
                         <rect class="stroke-[#050505]" x="9.21523" y="9.21523" width="6.18462" height="6.18462" rx="1.4" stroke-width="1.2"/>
                         <rect class="stroke-[#050505]" x="9.21523" y="0.6" width="6.18462" height="6.18462" rx="1.4" stroke-width="1.2"/>
                     </svg>
-                        
+
                     <span class="truncate block min-w-0">Dashboard</span>
                 </a>
 
 
-                <div class="space-y-2">
+                <div class="space-y-2 ">
                     <template x-for="item in [
                         { name: 'Fatture', value: 'fatture', icon: 'invoice' },
-                        { name: 'Spese', value: 'spese', icon: 'spese' },
-                        { name: 'Automazioni', value: 'automazioni', icon: 'automazioni' },
-                        { name: 'PEC', value: 'email', icon: 'mail' },
-                        { name: 'Tasse e Tributi', value: 'tasse', icon: 'tasse' },
+                        { name: 'Spese', value: 'spese', icon: 'spese', comingSoon: true },
+                        { name: 'Automazioni', value: 'automazioni', icon: 'automazioni', comingSoon: true },
+                        { name: 'PEC', value: 'email', icon: 'mail', comingSoon: true },
+                        { name: 'Tasse e Tributi', value: 'tasse', icon: 'tasse', comingSoon: true },
                         { name: 'Documenti', value: 'documenti', icon: 'documenti' },
                         { name: 'Contatti', value: 'contatti', icon: 'contatti' }
                     ]" :key="item.value">
-                    <a href="#" @click.prevent="selected = item.value; mainSidebar = true; secondarySidebar = true; animateBars = true; setTimeout(() => animateBars = false, 500);" 
-                        class="hover:scale-1015 transform  flex  items-center py-1.5 text-[#050505] px-1.5 rounded hover:border-[#f5f5f5] hover:bg-[#f5f5f5] text-[14px] border transition duration-200 ease-in"
-                        :class="selected === item.value ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent'">
+                        <a href="#"
+                            @mouseenter="
+                                if (mainSidebar) {
+                                    clearTimeout(tooltipTimeout);
+                                    const rect = $event.currentTarget.getBoundingClientRect();
+                                    tooltipTimeout = setTimeout(() => {
+                                        showTooltip = true;
+                                        tooltipText = item.comingSoon ? `${item.name} (In arrivo)` : item.name;
+                                        tooltipX = rect.right + 8;
+                                        tooltipY = rect.top + rect.height / 2 - 12;
+                                    }, 300);
+                                }
+                            "
+                            @mouseleave="
+                                clearTimeout(tooltipTimeout);
+                                showTooltip = false;
+                            "
+                            @click.prevent="
+                                if (!item.comingSoon) {
+                                    selected = item.value;
+                                    mainSidebar = true;
+                                    secondarySidebar = true;
+                                    animateBars = true;
+                                    setTimeout(() => animateBars = false, 500);
+                                }
+                            "
+                            class="hover:scale-1015 transform flex items-center py-1.5 px-1.5 rounded text-[14px] border transition duration-200 ease-in relative"
+                            :class="[
+                                selected === item.value ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent',
+                                item.comingSoon ? 'text-[#A0A0A0] cursor-not-allowed' : 'hover:bg-[#f5f5f5] hover:border-[#f5f5f5]'
+                            ]"
+                        >
+
+                            <span
+                                x-data="{ showComingSoon: !mainSidebar && item.comingSoon }"
+                                x-init="$watch('!mainSidebar', value => {
+                                    if (value && item.comingSoon) {
+                                        setTimeout(() => showComingSoon = true, 100);
+                                    } else {
+                                        showComingSoon = false;
+                                    }
+                                })"
+                                x-show="showComingSoon"
+                                x-transition.opacity.duration.200ms
+                                class="absolute right-0 mt-0.5 mr-1 bg-yellow-300 text-yellow-900 text-[9px] px-1.5 py-0.5 rounded-full leading-tight font-medium uppercase whitespace-nowrap">
+                                IN ARRIVO
+                            </span>
 
                             <template x-if="item.icon === 'invoice'">
 
-                                <svg class="flex-shrink-0" width="18" height="17" viewBox="0 0 18 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <svg  :class="item.comingSoon ? 'opacity-60 grayscale cursor-not-allowed' : ''" class="flex-shrink-0" width="18" height="17" viewBox="0 0 18 17" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <g clip-path="url(#clip0_1241_6066)">
                                     <path d="M3.92742 8.85741C3.65316 8.77671 3.46109 8.49957 3.46067 8.18415C3.46193 7.99647 3.52777 7.82124 3.64687 7.69212C3.76974 7.55839 3.92994 7.48507 4.09517 7.48691H5.61873L4.54012 6.3018C4.38076 6.12518 4.31743 5.86695 4.37573 5.62854C4.40508 5.50864 4.4617 5.40074 4.5397 5.31681C4.66215 5.18354 4.81983 5.11022 4.98423 5.11022C4.98548 5.11022 4.98674 5.11022 4.98842 5.11022C5.16036 5.11161 5.3193 5.18401 5.43714 5.31497L7.15277 7.20009L8.86713 5.31358C9.02775 5.13835 9.2626 5.06872 9.47941 5.13282C9.58844 5.1651 9.68658 5.22735 9.7629 5.31312C9.88494 5.4487 9.9512 5.62393 9.95036 5.80654C9.9491 5.9956 9.88326 6.17037 9.76416 6.29995L8.68513 7.48737H10.2154C10.2695 7.48737 10.3265 7.49568 10.3794 7.51135C10.6536 7.59159 10.8457 7.86827 10.8457 8.18415C10.8444 8.37229 10.7786 8.54706 10.6595 8.67618C10.5366 8.80991 10.3789 8.88277 10.2112 8.88185H8.68261L9.76542 10.0716C9.92478 10.2482 9.9881 10.506 9.92981 10.7448C9.90045 10.8647 9.84384 10.9726 9.76584 11.0566C9.64254 11.1907 9.48444 11.2636 9.31711 11.2627C9.14517 11.2613 8.98582 11.1889 8.86839 11.0579L7.15277 9.17282L5.4384 11.0593C5.27778 11.2346 5.04294 11.3042 4.82613 11.2401C4.71709 11.2078 4.61896 11.1456 4.54263 11.0598C4.4206 10.9242 4.35434 10.749 4.35518 10.5664C4.35643 10.3773 4.42228 10.2025 4.54138 10.073L5.6246 8.88139H4.0914C4.0373 8.88139 3.98026 8.87309 3.92742 8.85741Z" fill="#262626"/>
                                     </g>
@@ -96,18 +201,18 @@
                                     
                             </template>
                             <template x-if="item.icon === 'abbonamenti'">
-                                <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                <svg  :class="item.comingSoon ? 'opacity-60 grayscale cursor-not-allowed' : ''" class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3" />
                                 </svg>
-                                  
+                                
                             </template>
                             <template x-if="item.icon === 'contatti'">
-                                <svg class="flex-shrink-0" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <svg  :class="item.comingSoon ? 'opacity-60 grayscale cursor-not-allowed' : ''" class="flex-shrink-0" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M14.8479 16.5495C14.5433 14.4386 12.9104 12.713 10.7844 12.5584C9.57146 12.4701 8.44108 12.4703 7.22585 12.5589C5.09891 12.7139 3.46483 14.4396 3.16019 16.5513M11.6644 7.22274C11.6644 8.6955 10.4707 9.88941 8.9983 9.88941C7.52585 9.88941 6.3322 8.6955 6.3322 7.22274C6.3322 5.74998 7.52585 4.55607 8.9983 4.55607C10.4707 4.55607 11.6644 5.74998 11.6644 7.22274ZM3.28078 16.7305C7.49277 17.0897 10.4667 17.0905 14.7331 16.7287C15.7928 16.6389 16.6326 15.7944 16.7203 14.734C17.0734 10.4661 17.1079 7.4776 16.7335 3.24512C16.6407 2.19647 15.8066 1.36639 14.7583 1.2756C10.5044 0.907217 7.52692 0.908292 3.23865 1.27788C2.19543 1.36779 1.36239 2.18961 1.26588 3.23274C0.870425 7.50716 0.947165 10.503 1.292 14.7278C1.37877 15.7909 2.21856 16.6399 3.28078 16.7305Z" stroke="#282930" stroke-width="1.2"/>
                                 </svg>
                             </template>
                             <template x-if="item.icon === 'spese'">
-                                <svg class="flex-shrink-0" width="17" height="19" viewBox="0 0 17 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <svg  :class="item.comingSoon ? 'opacity-60 grayscale cursor-not-allowed' : ''" class="flex-shrink-0" width="17" height="19" viewBox="0 0 17 19" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M13.5005 3.15687C13.5005 2.0776 13.0012 1.18527 11.5196 1C10.4805 1.00063 3.50702 1.00002 3.31879 1H3.31491H3.31484C2.03638 1.00004 1 2.05857 1 3.36433V15.1653C1 15.5589 1.44906 15.7777 1.7522 15.5318L2.97379 14.541C3.1653 14.3856 3.44307 14.4086 3.60714 14.5935L5.05419 16.0138C5.23811 16.221 5.55854 16.221 5.74246 16.0138L7.13761 14.652C7.32153 14.4448 7.64196 14.4448 7.82588 14.652L9.17565 15.9626C9.34523 16.1537 10.2203 15.5197 10.3807 15.3209L10.9025 14.6743C11.0558 14.4522 11.3623 14.4076 11.571 14.5769L12.7483 15.5318C13.0514 15.7777 13.5005 15.5589 13.5005 15.1653V5.95089V3.15687Z" stroke="#282930" stroke-width="1.2"/>
                                     <path d="M16.0007 4.82337C16.0007 3.7441 15.5014 2.85178 14.0198 2.6665C12.9807 2.66714 6.00725 2.66652 5.81901 2.6665H5.81513H5.81506C4.5366 2.66654 3.50022 3.72507 3.50022 5.03083L3.5 16.4913C3.5 16.885 3.94906 17.1038 4.2522 16.8579L5.47379 15.867C5.6653 15.7117 5.94307 15.7347 6.10714 15.9195L7.55419 17.3398C7.73811 17.547 8.05854 17.547 8.24246 17.3398L9.63761 15.978C9.82153 15.7708 10.142 15.7708 10.3259 15.978L11.6756 17.2887C11.8749 17.5132 12.2283 17.4913 12.3991 17.2439L13.4025 16.0003C13.5558 15.7783 13.8623 15.7336 14.071 15.903L15.2483 16.8579C15.5514 17.1038 16.0005 16.885 16.0005 16.4913L16.0007 7.61739V4.82337Z" fill="white" stroke="#282930" stroke-width="1.2"/>
                                     <path d="M6.50977 6.58398H12.9915" stroke="#282930" stroke-width="1.2" stroke-linecap="round"/>
@@ -116,13 +221,13 @@
                                 </svg>        
                             </template>
                             <template x-if="item.icon === 'automazioni'">
-                                <svg class="flex-shrink-0" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <svg  :class="item.comingSoon ? 'opacity-60 grayscale cursor-not-allowed' : ''" class="flex-shrink-0" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M1.26588 3.23274C1.36239 2.18961 2.19543 1.36779 3.23865 1.27788C7.52692 0.908292 10.5044 0.907217 14.7583 1.2756C15.8066 1.36639 16.6407 2.19647 16.7335 3.24512C17.1079 7.4776 17.0734 10.4661 16.7203 14.734C16.6326 15.7944 15.7928 16.6389 14.7331 16.7287C10.4667 17.0905 7.49277 17.0897 3.28078 16.7305C2.21856 16.6399 1.37877 15.7909 1.292 14.7278C0.947164 10.503 0.870425 7.50716 1.26588 3.23274Z" stroke="#282930" stroke-width="1.2"/>
                                     <path d="M7.61591 10.1111H5.32771C5.09016 10.1111 4.9317 9.87084 5.02918 9.65845L7.61593 4.37849C7.72166 4.14814 7.95535 4 8.21299 4H10.8426C11.0903 4 11.2483 4.25929 11.1308 4.47312L9.35896 7.69927C9.24152 7.9131 9.39948 8.17238 9.64719 8.17238H11.672C11.9499 8.17238 12.1014 8.49036 11.9231 8.69929L6.58625 14.9531C6.49107 15.0646 6.30991 14.9595 6.36383 14.824L7.92088 10.5487C8.00463 10.3383 7.84632 10.1111 7.61591 10.1111Z" stroke="#282930" stroke-width="1.2"/>
                                 </svg>    
                             </template>
                             <template x-if="item.icon === 'tasse'">
-                                <svg class="flex-shrink-0"  width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <svg  :class="item.comingSoon ? 'opacity-60 grayscale cursor-not-allowed' : ''" class="flex-shrink-0"  width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M1.26588 3.23274C1.36239 2.18961 2.19543 1.36779 3.23865 1.27788C7.52692 0.908292 10.5044 0.907217 14.7583 1.2756C15.8066 1.36639 16.6407 2.19647 16.7335 3.24512C17.1079 7.4776 17.0734 10.4661 16.7203 14.734C16.6326 15.7944 15.7928 16.6389 14.7331 16.7287C10.4667 17.0905 7.49277 17.0897 3.28078 16.7305C2.21856 16.6399 1.37877 15.7909 1.292 14.7278C0.947165 10.503 0.870425 7.50716 1.26588 3.23274Z" stroke="#282930" stroke-width="1.2"/>
                                     <path d="M6.33398 11.6665L11.2992 6.33304" stroke="black" stroke-width="1.2" stroke-linecap="round"/>
                                     <circle cx="10.6008" cy="11.6668" r="0.6" stroke="black" stroke-width="0.933333"/>
@@ -130,12 +235,12 @@
                                 </svg>
                             </template>
                             <template x-if="item.icon === 'documenti'">
-                                <svg class="flex-shrink-0" width="18" height="16" viewBox="0 0 18 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <svg  :class="item.comingSoon ? 'opacity-60 grayscale cursor-not-allowed' : ''" class="flex-shrink-0" width="18" height="16" viewBox="0 0 18 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M9.40185 15.2154C11.2212 15.2423 12.971 15.1895 15.1109 15.0565C15.994 15.0015 16.6938 14.4854 16.7669 13.8375C17.0611 11.2293 17.0899 9.40298 16.7779 6.81646C16.7315 6.4313 16.4618 6.09438 16.0644 5.87481M9.40185 15.2154C8.19849 15.1976 6.96466 15.1449 5.56732 15.0575C4.68213 15.0022 3.98231 14.4833 3.91 13.8337C3.62264 11.2519 3.55869 9.42104 3.88823 6.8089C3.96866 6.17143 4.66286 5.66921 5.53221 5.61426C9.10577 5.3884 11.587 5.38774 15.1319 5.61287C15.4804 5.635 15.8006 5.72905 16.0644 5.87481M9.40185 15.2154C7.40073 15.2469 5.47671 15.1691 3.15407 14.9827C2.15086 14.9022 1.35773 14.1474 1.27578 13.2025C0.9501 9.44715 0.877623 6.78414 1.25111 2.98466C1.34225 2.05743 2.12902 1.32692 3.11428 1.247C5.14321 1.08243 6.86145 1.00006 8.5762 1C9.10173 0.999983 9.60508 1.20589 9.98682 1.56583L10.8869 2.41451C11.2753 2.78073 11.7893 2.98541 12.324 2.98675L13.9529 2.99086C15.0342 2.99359 15.9418 3.81472 16.0106 4.89004C16.032 5.22432 16.0499 5.55189 16.0644 5.87481" stroke="#282930" stroke-width="1.2" stroke-linecap="round"/>
                                 </svg>
                             </template>
                             <template x-if="item.icon === 'mail'">
-                                <svg class="flex-shrink-0" width="18" height="15" viewBox="0 0 18 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <svg  :class="item.comingSoon ? 'opacity-60 grayscale cursor-not-allowed' : ''" class="flex-shrink-0" width="18" height="15" viewBox="0 0 18 15" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M1.26588 2.86062C1.36239 1.99134 2.19543 1.30649 3.23865 1.23157C7.52692 0.923577 10.5044 0.922681 14.7583 1.22967C15.8066 1.30532 16.6407 1.99706 16.7335 2.87094C17.1079 6.398 17.0734 8.88839 16.7203 12.445C16.6326 13.3286 15.7928 14.0324 14.7331 14.1073C10.4667 14.4088 7.49277 14.4081 3.28078 14.1088C2.21856 14.0333 1.37877 13.3257 1.292 12.4399C0.947165 8.91921 0.870425 6.42263 1.26588 2.86062Z" stroke="#282930" stroke-width="1.2"/>
                                     <path d="M2.06641 2.3335L7.49813 7.62359C8.34773 8.40239 9.65175 8.40239 10.5014 7.62359L15.9331 2.3335" stroke="#282930" stroke-width="1.2" stroke-linecap="round"/>
                                 </svg>             
@@ -284,14 +389,12 @@
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ordinaria</h3>
                 <nav class="space-y-1 text-sm">
                     <a href="{{ route('fatture.list') }}" wire:navigate class="block rounded py-1.5 px-2 bg-gray-100 text-gray-900">Fatture</a>
-                    <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Lavorazioni</a>
                     <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Preventivi</a>
                 </nav>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ricorrenti</h3>
                 <nav class="space-y-1 text-sm">
                     <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture ricorrenti</a>
                     <a wire:navigate href="{{ route('abbonamenti.lista') }}" class="block rounded py-1.5 px-2 hover:bg-gray-100">Abbonamenti</a>
-                    <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Transazioni</a>
                 </nav>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Gestione</h3>
                 <nav class="space-y-1 text-sm">
@@ -315,8 +418,6 @@
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Anagrafiche</h3>
                 <nav class="space-y-1 text-sm">
                     <a href="{{ route('contatti.clienti.lista') }}" wire:navigate class="block rounded py-1.5 px-2 hover:bg-gray-100">Clienti</a>
-                    <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100 line-through">Fornitori</a>
-                    <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100 line-through">Collaboratori</a>
                 </nav>
             </div>
         </div>
@@ -337,10 +438,42 @@
                 </nav>
             </div>
         </div>
-    
+
+        
+        <div x-show="selected === 'documenti'" x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        x-cloak
+        class="absolute w-[calc(100%-2rem)]">
+                <div>
+                    <h2 class="text-[16px] font-normal text-[#050505] mb-2">Documenti</h2>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Lavorazioni</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture</a>
+                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Preventivi</a>
+                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Contratti</a>
+                    </nav>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Spese</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Ricevute</a>
+                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">F24/MAV</a>
+                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Sanzioni</a>
+                    </nav>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Documentazione</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">ADE</a>
+                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">INPS</a>
+                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Altro</a>
+                    </nav>
+                </div>
+            </div>
+
 
         <!-- Dashboard o fallback -->
-        <div x-show="!['fatture', 'contatti', 'email', 'dashboard', 'admin'].includes(selected)" x-transition:enter="transition ease-out duration-200"
+        <div x-show="!['fatture', 'contatti', 'email', 'dashboard', 'admin', 'documenti'].includes(selected)" x-transition:enter="transition ease-out duration-200"
     x-transition:enter-start="opacity-0"
     x-transition:enter-end="opacity-100"
     x-transition:leave="transition ease-in duration-200"
@@ -354,4 +487,16 @@
             </div>
         </div>
     </div>
+    <div
+        x-show="showTooltip"
+        x-text="tooltipText"
+        x-transition:enter="transition-opacity duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed px-2 py-1 bg-black text-white text-xs rounded shadow z-[999999]"
+        :style="`top: ${tooltipY}px; left: ${tooltipX}px; min-width: max-content;`"
+    ></div>
 </div>

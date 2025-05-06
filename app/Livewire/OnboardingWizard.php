@@ -205,7 +205,7 @@ class OnboardingWizard extends Component
         $pdf = Pdf::loadView('pdf.delega_ae', $data)->output();
 
         // Salva su S3 come "DELEGA.pdf"
-        Storage::disk('s3')->put("newo/registrazioni/{$this->uuid}/DELEGA.pdf", $pdf);
+        Storage::disk('s3')->put("registrazioni/{$this->uuid}/DELEGA.pdf", $pdf);
 
         // (Opzionale) salva il path su DB o segnala successo
         session()->flash('message', 'PDF caricato su S3 con successo!');
@@ -489,7 +489,7 @@ class OnboardingWizard extends Component
             'document_back' => 'required|file|mimes:jpeg,png,pdf|max:5120',
         ]);
 
-        $folder = 'newo/registrazioni/' . $this->uuid;
+        $folder = 'registrazioni/' . $this->uuid;
 
         $extFront = $this->document_front->getClientOriginalExtension();
         $extBack = $this->document_back->getClientOriginalExtension();

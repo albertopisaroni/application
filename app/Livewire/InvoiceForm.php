@@ -388,7 +388,7 @@ class InvoiceForm extends Component
             $companySlug   = $this->company->slug;
             $year          = Carbon::parse($this->invoiceDate)->format('Y');
             $invoiceNumber = $this->invoicePrefix . $this->invoiceNumber;
-            $path          = "{$companySlug}/fatture/{$this->selectedNumberingId}/{$year}/{$invoice->invoice_number}.pdf";
+            $path          = "clienti/{$companySlug}/fatture/{$this->selectedNumberingId}/{$year}/{$invoice->invoice_number}.pdf";
 
             $encrypted = encrypt($pdf);
             Storage::disk('s3')->put($path, $encrypted);

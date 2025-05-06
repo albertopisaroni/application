@@ -14,13 +14,9 @@ class InvoiceController extends Controller
      */
     public function list()
     {
-        $currentCompanyId = session('current_company_id');
-
-        $invoices = Invoice::where('company_id', $currentCompanyId)
-            ->orderBy('issue_date', 'desc')
-            ->paginate(15);
-
-        return view('fatture.list', compact('invoices'));
+        
+    
+        return view('fatture.list');
     }
 
     /**

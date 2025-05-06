@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\ApiToken;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 
 use App\Models\InvoiceNumbering;
@@ -99,6 +100,29 @@ class Company extends Model
                 'error'     => $resp->body(),
             ]);
         }
+    }
+
+    public function getLogoAttribute(): string
+    {
+        // Se c'è un logo su S3
+        if ($this->logo_path && Storage::disk('s3')->exists($this->logo_path)) {
+            return Storage::disk('s3')->temporaryUrl(
+                $this->logo_path,
+                now()->addMinutes(5)
+            );
+        }
+
+        // Altrimenti usa brandfetch dal dominio del sito
+        if ($this->website) {
+            $domain = parse_url($this->website, PHP_URL_HOST) ?? $this->website;
+            $domain = preg_replace('/^www\./', '', $domain); // rimuovi www
+            $domain = rtrim($domain, '/'); // rimuovi eventuali slash finali
+
+            return "https://cdn.brandfetch.io/{$domain}/w/400/h/400/fallback/404?c=1idF_Jzc3poux8xtCJk";
+        }
+
+        // Fallback totale
+        return 'https://ui-avatars.com/api/?format=svg&name=' . urlencode($this->name);
     }
 
     protected static function booted()

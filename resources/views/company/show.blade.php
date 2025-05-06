@@ -12,6 +12,24 @@
         </div>
     </div>
 
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-2">Logo azienda</h2>
+    
+        <div class="flex items-center">
+            {{-- Logo --}}
+            <div class="mr-4">
+                <img src="{{ $company->logo }}" alt="Logo" class="size-8 rounded-full">
+            </div>
+
+        
+            <form action="{{ route('company.logo.upload', $company) }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-4 mt-2">
+                @csrf
+                <input type="file" name="logo" accept="image/*" class="border p-2 rounded">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Carica nuovo logo</button>
+            </form>
+        </div>
+    </div>
+
     {{-- UTENTI ASSOCIATI --}}
     <div class="mb-8">
     <h2 class="text-xl font-bold mb-4">Utenti associati</h2>
