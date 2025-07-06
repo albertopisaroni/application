@@ -6,8 +6,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\StripeAccount;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Artisan;
+
 use Stripe\StripeClient;
 
 class StripeConnectController extends Controller
@@ -25,16 +28,47 @@ class StripeConnectController extends Controller
 
         $stripe = new StripeClient($stripeAccount->access_token);
 
-        // Esempio: lista clienti
-        $customers = $stripe->customers->all();
+        // // Esempio: lista clienti
+        // $customers = $stripe->customers->all();
 
-        // Esempio: lista prodotti
-        $products = $stripe->products->all();
+        // // Esempio: lista prodotti
+        // $products = $stripe->products->all();
 
         // Esempio: lista abbonamenti
-        $subscriptions = $stripe->subscriptions->all();
+        // $subscriptions = $stripe->subscriptions->all();
+        // return json_encode($subscriptions);
 
-        return json_encode($subscriptions);
+        // oggetto vuoto
+        // $oggetto = new \stdClass();
+        // $oggetto->data = [];
+
+        // $startingAfter = null;
+        // do {
+        //     $params = ['limit' => 100];
+        //     if ($startingAfter) {
+        //         $params['starting_after'] = $startingAfter;
+        //     }
+
+        //     $subscriptions = $stripe->subscriptions->all($params, [
+        //         'stripe_account' => $stripeAccount->stripe_user_id,
+        //     ]);
+
+        //     foreach ($subscriptions->data as $subscription) {
+                
+        //         // aggiungi all'oggetto la subscription
+        //         $oggetto->data[] = $subscription;
+
+        //     }
+
+        //     $startingAfter = count($subscriptions->data) ? end($subscriptions->data)->id : null;
+        // } while ($subscriptions->has_more);
+
+
+        // //stampa l'oggetto come json
+        // return json_encode($oggetto);
+
+
+        
 
 
         $companyId = auth()->user()->current_company_id;
@@ -69,7 +103,7 @@ class StripeConnectController extends Controller
         ]);
 
         if (! $response->successful()) {
-            return redirect('/dashboard')->with('error', 'Errore nel collegamento Stripe');
+            return redirect(config('app.app_url').'/abbonamenti')->with('error', 'Errore nel collegamento Stripe');
         }
 
         $data = $response->json();
@@ -81,6 +115,17 @@ class StripeConnectController extends Controller
             'default' => $company->stripeAccounts()->count() === 0, // primo = default
         ]);
 
-        return redirect('/dashboard')->with('success', 'Stripe collegato con successo');
+        $stripeAccount = StripeAccount::where('access_token', $data['access_token'])->first();
+
+        if (! $stripeAccount) {
+            return redirect(config('app.app_url').'/abbonamenti')->with('error', 'Errore nel collegamento Stripe: account non trovato');
+        }
+
+        Artisan::queue('stripe:sync', [
+            'stripe_account_id' => $stripeAccount->id,
+        ]);
+
+
+        return redirect(config('app.app_url').'/abbonamenti')->with('success', 'Stripe collegato con successo');
     }
 }

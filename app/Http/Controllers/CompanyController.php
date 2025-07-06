@@ -173,7 +173,7 @@ class CompanyController extends Controller
             'email' => 'required|email',
         ]);
 
-        $company = auth()->user()->currentCompany();
+        $company = auth()->user()->currentCompany;
 
         $user = User::where('email', $request->email)->first();
 
@@ -204,7 +204,7 @@ class CompanyController extends Controller
 
     public function removeUser($userId)
     {
-        $company = auth()->user()->currentCompany();
+        $company = auth()->user()->currentCompany;
     
         // Impedisci di rimuovere se stessi
         if (auth()->id() == $userId) {

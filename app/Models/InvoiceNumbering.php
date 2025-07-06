@@ -104,4 +104,9 @@ class InvoiceNumbering extends Model
 
         return 'https://ui-avatars.com/api/?format=svg&name=' . urlencode($this->name);
     }
+
+    public function stripeAccount()
+    {
+        return $this->hasOne(StripeAccount::class);
+    }
 }

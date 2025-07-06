@@ -415,7 +415,7 @@ class InvoiceForm extends Component
             DB::commit();
 
             session()->flash('success', 'Fattura salvata con successo.');
-            return redirect()->route('fatture.list');
+            return redirect()->route('fatture.lista');
         }
         catch (\Throwable $e) {
             DB::rollBack();

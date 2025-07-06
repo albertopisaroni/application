@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Models;
 
@@ -15,10 +15,16 @@ class StripeAccount extends Model
         'access_token',
         'refresh_token',
         'default',
+        'invoice_numbering_id',  // aggiunto
     ];
 
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function invoiceNumbering()
+    {
+        return $this->belongsTo(InvoiceNumbering::class);
     }
 }

@@ -1,24 +1,35 @@
 <div class="px-2">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-normal">Fatture</h1>
+        <h1 class="text-3xl font-normal">Abbonamenti</h1>
 
         <div class="flex items-center gap-x-4">
 
-            @if ($yearFilter || $search || $paymentStatusFilter)
-            <button wire:click="resetFilters" class="items-center gap-x-2 flex bg-[#e8e8e8] pr-4 pl-3 py-2 text-sm rounded-[4px] transition">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+            @if ($search || $paymentStatusFilter || $numberingFilter)
+                <button wire:click="resetFilters" class="items-center gap-x-2 flex bg-[#e8e8e8] pr-4 pl-3 py-2 text-sm rounded-[4px] transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
                         <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
                     </svg>                      
                     Elimina filtri
                 </button>
             @endif
 
-            <select wire:model.live="yearFilter" class="text-[#050505] invalid:text-[#aba7af] border border-[#e8e8e8] rounded px-3 py-2 text-sm pr-8" required>
-                <option value="null" disabled selected hidden>Seleziona anno</option>
-                @foreach ($years as $y)
-                    <option value="{{ $y }}">{{ $y }}</option>
+            <select wire:model.live="paymentStatusFilter" class="text-[#050505] invalid:text-[#aba7af] border border-[#e8e8e8] rounded px-3 py-2 text-sm pr-8" required>
+                <option value="null" disabled selected hidden>Stato abbonamento</option>
+                <option value="trialing">Trial</option>
+                <option value="active">Attivo</option>
+                <option value="expired">Scaduto</option>
+                <option value="canceled">Cancellato</option>
+                <option value="unpaid">Non pagato</option>
+                <option value="scheduled">Programmato</option>
+            </select>
+
+            <select wire:model.live="numberingFilter" class="text-[#050505] invalid:text-[#aba7af] border border-[#e8e8e8] rounded px-3 py-2 text-sm pr-8" required>
+                <option value="null" disabled selected hidden>Numerazione</option>
+                @foreach($numberings as $num)
+                    <option value="{{ $num['id'] }}"> {{ $num['name'] }}</option>
                 @endforeach
             </select>
+
 
             <button class="size-9 bg-[#e8e8e8] rounded-[4px] flex items-center justify-center">
                 <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -39,7 +50,7 @@
                 </svg>
             </button>
 
-            <a href="{{ route('fatture.nuova') }}" wire:navigate class="items-center gap-x-2 flex bg-black text-white px-4 py-2 text-sm rounded-[4px] transition">
+            <a href="" class="items-center gap-x-2 flex bg-black text-white px-4 py-2 text-sm rounded-[4px] transition">
                 <svg width="11" height="17" viewBox="0 0 11 17" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <g clip-path="url(#clip0_569_5702)">
                     <path d="M6.50062 0.5C6.67973 0.586454 6.79013 0.711577 6.75418 0.923154L6.02499 6.493H10.5442C10.675 6.493 10.8805 6.84542 10.7466 6.97557L5.44883 16.3243C5.18286 16.694 4.733 16.4283 4.81858 16.014L5.39092 10.5092H0.93466C0.832853 10.5092 0.620968 10.214 0.704004 10.0926L6.06285 0.772881C6.13188 0.649959 6.21269 0.560675 6.34218 0.5H6.50062Z" fill="white"/>
@@ -50,7 +61,7 @@
                     </clipPath>
                     </defs>
                 </svg>
-                Crea fattura
+                Crea abbonamento
             </a>
         </div>
 
@@ -65,20 +76,20 @@
             <path fill-rule="evenodd" clip-rule="evenodd" d="M11.8875 11.2198L8.775 8.09977C9.4425 7.25977 9.84 6.20227 9.84 5.05477C9.84 2.33227 7.635 0.134766 4.92 0.134766C2.205 0.134766 0 2.33227 0 5.05477C0 7.77727 2.205 9.97477 4.92 9.97477C6.21 9.97477 7.38 9.47977 8.2575 8.66227L11.355 11.7523C11.505 11.9023 11.745 11.9023 11.8875 11.7523C12.0375 11.6098 12.0375 11.3698 11.8875 11.2198ZM4.92 9.21727C2.6175 9.21727 0.7575 7.34977 0.7575 5.05477C0.7575 2.75977 2.6175 0.892266 4.92 0.892266C7.2225 0.892266 9.0825 2.75227 9.0825 5.05477C9.0825 7.35727 7.2225 9.21727 4.92 9.21727Z" fill="#050505"/>
             </g>
         </svg>
-        <input id="searchInput" wire:model.debounce.live.500ms="search" type="text" placeholder="Cerca per nome cliente o numero fattura" class="bg-[#f5f5f5] rounded-[4px] border-0 ring-0 focus:ring-0 pr-4 py-2 w-full text-sm">
+        <input id="searchInput" wire:model.debounce.live.500ms="search" type="text" placeholder="Cerca per nome cliente o per email" class="bg-[#f5f5f5] rounded-[4px] border-0 ring-0 focus:ring-0 pr-4 py-2 w-full text-sm">
         <div id="shortcutHint" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 bg-white border border-gray-300 rounded px-1 py-0.5 pointer-events-none">
             ⌘K
         </div>
     </div>
 
     <div class="mb-3 text-sm text-gray-600 flex items-center gap-x-8">
-        <button wire:click="$set('paymentStatusFilter', 'unpaid')" class="text-[#FC460E] hover:font-semibold focus:outline-none {{ $paymentStatusFilter === 'unpaid' ? 'font-semibold' : '' }}">
-            Da incassare: {{ $unpaidCount }}
-        </button>
+        <div>
+            <strong>Abbonamenti attivi:</strong> {{ $activeCount }}
+        </div>
     
-        <button wire:click="$set('paymentStatusFilter', 'paid')" class="hover:font-semibold focus:outline-none {{ $paymentStatusFilter === 'paid' ? 'font-semibold' : '' }}">
-            Incassate: {{ $paidCount }}
-        </button>
+        <div>
+            <strong>MRR:</strong> € {{ number_format($mrr, 2, ',', '.') }}
+        </div>
             
         <div class="bg-[#dcf3fd] text-[#616161] rounded-[6.75px] px-4 py-2 text-sm flex gap-x-1 items-center">
             <svg width="6" height="15" viewBox="0 0 6 15" fill="none" xmlns="http://www.w3.org/2000/svg" class="mr-1">
@@ -98,8 +109,9 @@
                 </filter>
                 </defs>
             </svg>
-            Ci sono <strong>{{ $unpaidCount }} fatture</strong> da incassare per un totale di <strong>€ {{ number_format($unpaidTotal, 2, ',', '.') }}</strong>
+            Questo mese sono previsti <strong>{{ $renewalsCount }} abbonamenti</strong> per un totale di <strong>€ {{ number_format($renewalsTotal, 2, ',', '.') }}</strong>
         </div>
+        
     </div>
 
    
@@ -112,51 +124,61 @@
                     <th class="py-2 px-4 font-normal">Numerazione</th>
                     <th class="py-2 px-4 font-normal">Stato</th>
                     <th class="py-2 px-4 font-normal">Importo</th>
-                    <th class="py-2 px-4 font-normal">Netto post tasse</th>
-                    <th class="py-2 px-4 font-normal">Data di emissione</th>
-                    <th class="py-2 px-4 font-normal">Data di scadenza</th>
+
+                    <th class="py-2 px-4 font-normal">Prodotto</th>
+                    <th class="py-2 px-4 font-normal">Prossimo rinnovo</th>
+                    <th class="py-2 px-4 font-normal">Creato il</th>
                     <th class="py-2 px-4"></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
-                @foreach ($invoices as $invoice)
+                @foreach ($subscriptions as $subscription)
                     <tr class="hover:bg-[#f5f5f5] bg-white group transition-all duration-200">
                         <td class="whitespace-nowrap py-4 pl-2 pr-4">
                             <div class="flex items-center gap-2">
-                                <img src="{{ $invoice->client->logo }}" alt="{{ $invoice->client->name }}" class="w-8 h-8 rounded-full object-cover" />
+                                <img src="{{ $subscription->client->logo }}" alt="{{ $subscription->client->name }}" class="w-8 h-8 rounded-full object-cover" />
                                 <div class="flex-1 min-w-0">
-                                  <div class="font-normal text-gray-900 truncate">
-                                    {{ $invoice->client->name ?? '' }}
+                                  <div class="font-normal text-gray-900 truncate uppercase">
+                                    {{ $subscription->client->name ?? '' }}
                                   </div>
                                   <div class="text-xs text-[#616161] lowercase truncate">
-                                    {{ $invoice->client->primaryContact?->email ?? '' }}
+                                    {{ $subscription->client->primaryContact?->email ?? '' }}
                                   </div>
                                 </div>
                             </div>
                         </td>
                         <td class="whitespace-nowrap py-4 px-4 font-normal text-gray-800">
                             <div class="flex items-center gap-2">
-                                {{ $invoice->invoice_number }}
+                                {{ $subscription->subscription_number }}
                             </div>
-                        </td>
+                        </td>               
                         <td class="py-4 px-4 whitespace-nowrap">  
     
-                            @if ($invoice->payment_status === 'Pagata')
-                                <span class="bg-[#cff5d4] text-[#3aab53] border-[#3aab53] border text-xs font-medium px-3 py-1 rounded-full">
-                            @elseif ($invoice->payment_status === 'Parziale')
-                                <span class="bg-[#EFF8FF] text-[#395cd3] border-[#bfdbfe] border text-xs font-medium px-3 py-1 rounded-full">
+                            @if ($subscription->status === 'active')
+                                <span class="bg-[#edffef] text-[#1b7101] text-xs font-medium px-3 py-1 rounded-[4px]">
+                                    Attivo
+                                </span>
+                            @elseif ($subscription->status === 'canceled')
+                                <span class="bg-[#eeeeee] text-[#383838] text-xs font-medium px-3 py-1 rounded-[4px]">
+                                    Cancellato
+                                </span>
                             @else
                                 <span class="bg-[#fff4f0] text-[#FC460E] text-xs font-medium px-3 py-1 rounded-[4px]">
+                                    {{ $subscription->status }}
+                                </span>
                             @endif
-                                {{ $invoice->payment_status }}
-                            </span>
                             
                         </td>
-                        <td class="whitespace-nowrap py-4 px-4 text-gray-900 font-medium">{{ number_format($invoice->total, 2, ',', '.') }} EUR</td>
-                        <td class="whitespace-nowrap py-4 px-4 text-gray-900 font-medium"><span class="font-normal">≈</span>{{ number_format($invoice->netto_post_tax, 2, ',', '.') }} EUR</td>
-                        <td class="whitespace-nowrap py-4 px-4 text-gray-700">{{ strtolower($invoice->issue_date->locale('it')->isoFormat('DD MMM YYYY')) }}</td>
+                        <td class="whitespace-nowrap py-4 px-4 text-gray-900 font-medium">{{ number_format(($subscription->price->unit_amount), 2, ',', '.') }} EUR</td>
+
                         <td class="whitespace-nowrap py-4 px-4 text-gray-700">
-                            {{ $invoice->deadline_date ? strtolower($invoice->deadline_date->locale('it')->isoFormat('DD MMM YYYY')) : '–' }}
+                            {{ $subscription->price->product->name }}
+                        </td>
+                        <td class="whitespace-nowrap py-4 px-4 text-gray-700 text-justify">
+                            {{ strtolower($subscription->current_period_end->locale('it')->isoFormat('DD MMM YYYY')) }}
+                        </td>
+                        <td class="whitespace-nowrap py-4 px-4 text-gray-700 text-justify">
+                            {{ strtolower($subscription->start_date->locale('it')->isoFormat('DD MMM YYYY, HH:mm')) }}
                         </td>
                         <td class="whitespace-nowrap py-4 px-4 text-right">
                             <div class="flex justify-end items-center gap-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">                        
@@ -175,7 +197,7 @@
         </table>
 
         <div class="mt-4">
-            {{ $invoices->links() }}
+            {{ $subscriptions->links() }}
         </div>
     </div>
 

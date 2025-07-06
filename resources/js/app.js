@@ -1,5 +1,8 @@
 import './bootstrap';
 
+import { initDashboardCharts } from './charts';
+
+
 window.addEventListener('company-switched', () => {
     Livewire.navigate(window.location.href);
 });
@@ -25,11 +28,22 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+
+
+
+document.addEventListener('DOMContentLoaded', () => {;
+    
     const isMac = navigator.platform.toUpperCase().includes('MAC');
     const shortcutHint = document.getElementById('shortcutHint');
-
+    
     if (shortcutHint) {
         shortcutHint.textContent = isMac ? '⌘K' : 'Ctrl+K';
     }
+
+    initDashboardCharts();
+
+    // Riassegna dopo ogni livewire:navigate
+    document.addEventListener('livewire:navigated', () => {
+        initDashboardCharts();
+    });
 });

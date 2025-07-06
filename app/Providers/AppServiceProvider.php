@@ -9,6 +9,9 @@ use Illuminate\Contracts\Events\Dispatcher;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\Microsoft\MicrosoftExtendSocialite;
 
+use App\Models\Contact;
+use App\Observers\ContactObserver;
+
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -22,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
         $docsDomain = parse_url(config('app.docs_url'), PHP_URL_HOST);
         $fatturaDomain = parse_url(config('app.fatture_url'), PHP_URL_HOST);
         $benvenutoDomain = parse_url(config('app.benvenuto_url'), PHP_URL_HOST);
+
+        Contact::observe(ContactObserver::class);
 
         // 🔐 API Routes
         Route::middleware(['api', ApiTokenMiddleware::class])

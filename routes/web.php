@@ -73,7 +73,7 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
         Route::get('/abbonamenti', [AbbonamentiController::class, 'lista'])->name('abbonamenti.lista');
 
         // FATTURE
-        Route::get('/fatture', [InvoiceController::class, 'list'])->name('fatture.list');
+        Route::get('/fatture', [InvoiceController::class, 'list'])->name('fatture.lista');
         Route::get('/fatture/nuova', [InvoiceController::class, 'create'])->name('fatture.nuova');
         Route::post('/fatture', [InvoiceController::class, 'store'])->name('fatture.store');
 

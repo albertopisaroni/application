@@ -21,6 +21,7 @@ class InvoiceXmlGenerator
         $iban          = $paymentMethod?->iban       ?? '';
 
         $company = $invoice->company;                         // belongsTo
+        $companyName = htmlspecialchars(trim($company->legal_name), ENT_XML1 | ENT_QUOTES, 'UTF-8');
         $isForf  = (bool) $company->forfettario;
 
         $codiceFiscale = trim($company->codice_fiscale);
@@ -219,7 +220,7 @@ class InvoiceXmlGenerator
         </IdFiscaleIVA>
         {$cfXml}
         <Anagrafica>
-          <Denominazione>{$company->legal_name}</Denominazione>
+          <Denominazione>{$companyName}</Denominazione>
         </Anagrafica>
         <RegimeFiscale>{$regime}</RegimeFiscale>
       </DatiAnagrafici>

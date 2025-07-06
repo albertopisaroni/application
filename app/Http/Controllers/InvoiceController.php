@@ -16,7 +16,7 @@ class InvoiceController extends Controller
     {
         
     
-        return view('fatture.list');
+        return view('fatture.lista');
     }
 
     /**

@@ -12,12 +12,16 @@ class ContactController extends Controller
 {
     public function index()
     {
-        $clients = auth()->user()
-            ->currentCompany()
-            ->clients()
-            ->where('hidden', false)
-            ->get();
-    
+        $companyId = session('current_company_id');
+
+        if (! $companyId) {
+            abort(403, 'Nessuna company selezionata');
+        }
+
+        $clients = Client::where('company_id', $companyId)
+                         ->where('hidden', false)
+                         ->get();
+
         return view('contatti.clienti.lista', compact('clients'));
     }
 
@@ -30,7 +34,7 @@ class ContactController extends Controller
 
     public function store(Request $request)
     {
-        $company = auth()->user()->currentCompany();
+        $company = auth()->user()->currentCompany;
     
         $validated = $request->validate([
             'name' => 'required|string|max:255',

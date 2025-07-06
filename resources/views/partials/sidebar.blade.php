@@ -2,7 +2,7 @@
     $path = request()->path();
 
     $selected = match (true) {
-        str_starts_with($path, 'fatture') => 'fatture',
+        (str_starts_with($path, 'fatture') || str_starts_with($path, 'abbonamenti')) => 'fatture',
         str_starts_with($path, 'contatti') => 'contatti',
         str_starts_with($path, 'email') => 'email',
         str_starts_with($path, 'spese') => 'spese',
@@ -38,8 +38,8 @@
         <div>
             <!-- Header con logo e nome società -->
             <a href="{{ route('company.show') }}" wire:navigate class="flex items-center mb-6 space-x-2 my-1">
-                <img class="w-8 h-8 rounded-full" alt="" src="{{ Auth::user()->currentCompany()?->logo }}">
-                <span class="text-sm font-normal uppercase overflow-hidden text-ellipsis whitespace-nowrap mx-2 !mr-4">{{ Auth::user()->currentCompany()?->name }}</span>
+                <img class="w-8 h-8 rounded-full" alt="" src="{{ Auth::user()->currentCompany?->logo }}">
+                <span class="text-sm font-normal uppercase overflow-hidden text-ellipsis whitespace-nowrap mx-2 !mr-4">{{ Auth::user()->currentCompany?->name }}</span>
                 <svg class="size-3.5 absolute right-4 mt-[2px] mr-1" :class="mainSidebar ? 'hidden' : '' " xmlns="http://www.w3.org/2000/svg" width="8" height="8" fill="currentColor" viewBox="0 0 8 8" class="cMc"><path d="M5.493 1.999a.234.234 0 01-.175-.075L3.998.604l-1.323 1.32c-.1.1-.255.1-.355 0-.1-.1-.1-.255 0-.355L3.819.075c.1-.1.255-.1.355 0l1.499 1.499c.1.1.1.255 0 .355a.251.251 0 01-.175.075l-.005-.005zm0 3.997a.234.234 0 00-.175.075l-1.32 1.32L2.68 6.07c-.1-.1-.255-.1-.355 0-.1.1-.1.255 0 .355l1.499 1.499c.1.1.255.1.355 0l1.499-1.499c.1-.1.1-.255 0-.355a.251.251 0 00-.175-.075h-.01z"></path></svg>
             </a>
 
@@ -199,12 +199,6 @@
                                     </defs>
                                 </svg>
                                     
-                            </template>
-                            <template x-if="item.icon === 'abbonamenti'">
-                                <svg  :class="item.comingSoon ? 'opacity-60 grayscale cursor-not-allowed' : ''" class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3" />
-                                </svg>
-                                
                             </template>
                             <template x-if="item.icon === 'contatti'">
                                 <svg  :class="item.comingSoon ? 'opacity-60 grayscale cursor-not-allowed' : ''" class="flex-shrink-0" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -376,25 +370,25 @@
 
         <!-- Fatture -->
         <div x-show="selected === 'fatture'"
-    x-transition:enter="transition ease-out duration-200"
-    x-transition:enter-start="opacity-0"
-    x-transition:enter-end="opacity-100"
-    x-transition:leave="transition ease-in duration-200"
-    x-transition:leave-start="opacity-100"
-    x-transition:leave-end="opacity-0"
-    x-cloak
-    class="absolute w-[calc(100%-2rem)]">
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            x-cloak
+            class="absolute w-[calc(100%-2rem)]">
             <div>
                 <h2 class="text-[16px] font-normal text-[#050505] mb-2 mt-0.5">Fatture</h2>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ordinaria</h3>
                 <nav class="space-y-1 text-sm">
-                    <a href="{{ route('fatture.list') }}" wire:navigate class="block rounded py-1.5 px-2 bg-gray-100 text-gray-900">Fatture</a>
+                    <a href="{{ route('fatture.lista') }}" wire:navigate class="block rounded py-1.5 px-2 {{ request()->routeIs('fatture.lista') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Fatture</a>
                     <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Preventivi</a>
                 </nav>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ricorrenti</h3>
                 <nav class="space-y-1 text-sm">
                     <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture ricorrenti</a>
-                    <a wire:navigate href="{{ route('abbonamenti.lista') }}" class="block rounded py-1.5 px-2 hover:bg-gray-100">Abbonamenti</a>
+                    <a wire:navigate href="{{ route('abbonamenti.lista') }}" class="block rounded py-1.5 px-2 {{ request()->routeIs('abbonamenti.lista') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Abbonamenti</a>
                 </nav>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Gestione</h3>
                 <nav class="space-y-1 text-sm">

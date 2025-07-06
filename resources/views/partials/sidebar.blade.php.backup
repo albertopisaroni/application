@@ -946,7 +946,7 @@
 
 
                         <li class="flex items-center justify-between">
-                            <a href="{{ route('fatture.list') }}" class=" text-gray-800 dark:text-white-dark hover:text-primary  dark:hover:text-primary hover:text-primary group flex gap-x-3 rounded-md p-2 pl-0 text-sm leading-6 font-semibold transition-all" wire:navigate>
+                            <a href="{{ route('fatture.lista') }}" class=" text-gray-800 dark:text-white-dark hover:text-primary  dark:hover:text-primary hover:text-primary group flex gap-x-3 rounded-md p-2 pl-0 text-sm leading-6 font-semibold transition-all" wire:navigate>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="text-primary h-6 w-6 shrink-0 ">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
                                 </svg>

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,19 +11,8 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens;
+    use HasApiTokens, HasFactory, HasProfilePhoto, Notifiable, TwoFactorAuthenticatable;
 
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory;
-    use HasProfilePhoto;
-    use Notifiable;
-    use TwoFactorAuthenticatable;
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -34,11 +22,6 @@ class User extends Authenticatable
         'invitation_token',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
@@ -46,41 +29,40 @@ class User extends Authenticatable
         'two_factor_secret',
     ];
 
-    /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array<int, string>
-     */
     protected $appends = [
         'profile_photo_url',
+        'current_company',       // appendiamo l'accessor
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
 
     public function companies()
     {
-        return $this->belongsToMany(Company::class)->withPivot('permissions')->withTimestamps();
+        return $this->belongsToMany(Company::class)
+                    ->withPivot('permissions')
+                    ->withTimestamps();
     }
 
-    public function currentCompany()
+    /**
+     * Accessor per la company corrente.
+     * Assicurati di eager-load le companies prima di usarlo!
+     */
+    public function getCurrentCompanyAttribute(): ?Company
     {
-        return $this->companies()->where('companies.id', $this->current_company_id)->first();
+        // usa la collection già caricata, senza query aggiuntive
+        return $this->companies
+                    ->firstWhere('id', $this->current_company_id);
     }
 
     public function currentEmailAccount()
     {
-        return $this->hasOne(EmailAccount::class)->where('id', $this->current_email_account_id);
+        return $this->hasOne(EmailAccount::class)
+                    ->where('id', $this->current_email_account_id);
     }
-
 }

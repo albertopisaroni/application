@@ -21,6 +21,7 @@
         "vite": "^6.2.4"
     },
     "dependencies": {
+        "chart.js": "^4.4.9",
         "signature_pad": "^5.0.7"
     }
 }
