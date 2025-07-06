@@ -24,9 +24,9 @@ class StripeConnectController extends Controller
     public function redirect()
     {
 
-        $stripeAccount = StripeAccount::where('company_id', 1)->first();
+        // $stripeAccount = StripeAccount::where('company_id', 1)->first();
 
-        $stripe = new StripeClient($stripeAccount->access_token);
+        // $stripe = new StripeClient($stripeAccount->access_token);
 
         // // Esempio: lista clienti
         // $customers = $stripe->customers->all();
