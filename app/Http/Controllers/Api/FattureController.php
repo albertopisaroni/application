@@ -28,6 +28,7 @@ use App\Models\Contact;
 
 
 
+
 class FattureController extends Controller
 {
 

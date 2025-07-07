@@ -156,7 +156,7 @@ class InvoiceXmlGenerator
         });
 
         $bollo = ($hasOnlyZeroIva && $invoice->total > 77.47)
-            ? '<DatiBollo><BolloVirtuale>SI</BolloVirtuale><ImportoBollo>2.00</ImportoBollo>'
+            ? '<DatiBollo><BolloVirtuale>SI</BolloVirtuale><ImportoBollo>2.00</ImportoBollo></DatiBollo>'
             : '';
 
         $dataForm = $invoice->issue_date->format('d/m/Y');
@@ -171,7 +171,7 @@ class InvoiceXmlGenerator
         foreach ($invoice->paymentSchedules as $sched) {
             // data di scadenza
             $due = Carbon::parse($sched->due_date);
-            if ($due->lte($invoice->issue_date)) {
+            if ($due->lt($invoice->issue_date)) {
                 throw new \Exception(
                     "Scadenza {$due->toDateString()} deve essere successiva alla data fattura {$invoice->issue_date->toDateString()}."
                 );

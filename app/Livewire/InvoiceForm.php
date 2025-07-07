@@ -379,7 +379,7 @@ class InvoiceForm extends Component
             }
 
             // 5) Genero XML, invio a SDI, PDF, S3, email…
-            SendInvoiceToSdiJob::dispatch($invoice->id);
+            SendInvoiceToSdiJob::dispatch($invoice->id); 
 
             // Generazione PDF e caricamento S3 (resta invariato)
             $renderer = new InvoiceRenderer($invoice, $this->items, $this->payments, $this->splitPayments, $this->dueDate);
