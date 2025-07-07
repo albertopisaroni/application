@@ -405,7 +405,7 @@ class InvoiceForm extends Component
             if (! empty($recipients)) {
                 foreach ($recipients as $email) {
                     \Mail::to($email)
-                        ->send(new \App\Mail\InvoiceMail($invoice, $company));
+                        ->send(new \App\Mail\InvoiceMail($invoice, $this->company));
                     Log::info("📤 Fattura inviata a: $email");
                 }
             } else {
