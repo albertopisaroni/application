@@ -112,15 +112,6 @@ class Company extends Model
             );
         }
 
-        // Altrimenti usa brandfetch dal dominio del sito
-        if ($this->website) {
-            $domain = parse_url($this->website, PHP_URL_HOST) ?? $this->website;
-            $domain = preg_replace('/^www\./', '', $domain); // rimuovi www
-            $domain = rtrim($domain, '/'); // rimuovi eventuali slash finali
-
-            return "https://cdn.brandfetch.io/{$domain}/w/400/h/400/fallback/404?c=1idF_Jzc3poux8xtCJk";
-        }
-
         // Fallback totale
         return 'https://ui-avatars.com/api/?format=svg&name=' . urlencode($this->name);
     }

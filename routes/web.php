@@ -78,6 +78,10 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
         Route::post('/fatture', [InvoiceController::class, 'store'])->name('fatture.store');
 
 
+        Route::post('/update-company', function (Request $request) {
+            session(['current_company_id' => $request->input('company_id')]);
+            return response()->json(['status' => 'ok']);
+        })->name('update.company');
 
 
 

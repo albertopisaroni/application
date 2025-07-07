@@ -39,10 +39,10 @@ class InvoiceRenderer
         // 1) Forfettario
         $forfettarioBlock = $company->forfettario
             ? view('invoices.blocks.forfettario')->render()
-            : '';
+            : view('invoices.blocks.notforfettario')->render();
 
         // 2) Rows articoli
-        $invoiceRows = view('invoices.blocks.items', compact('items'))->render();
+        $invoiceRows = view('invoices.blocks.items', compact('items', 'company'))->render();
 
         // 3) Metodo pagamento
         $pm = $this->paymentMethod;
@@ -95,6 +95,36 @@ class InvoiceRenderer
             ? view('invoices.blocks.sconto', ['sconto' => number_format($this->invoice->global_discount,2,',','.')])->render() 
             : '';
 
+        if($company->regime_fiscale !== 'RF19'){
+            $totaleText = 'Totale (IVA inclusa):';
+            $tdIva = '<td class="border-b-2 pb-3 pl-2 text-right font-bold " style="border-color: #0d172b; color: #0d172b;" >IVA (%)</td><td class="border-b-2 pb-3 pl-2 pr-4 text-right font-bold " style="border-color: #0d172b; color: #0d172b;" >Totale (IVA escl.)</td>';
+            $trIva = '
+                <tr>
+                    <td class="border-b p-3 w-full"></td>
+                    <td class="border-b p-3">
+                    <div class="whitespace-nowrap text-neutral-700">Totale (IVA escl.):</div>
+                    </td>
+                    <td class="border-b p-3 text-right">
+                    <div class="whitespace-nowrap text-neutral-700">€'.number_format($this->invoice->subtotal,2,',','.').'</div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="border-b p-3 w-full"></td>
+                    <td class="border-b p-3">
+                    <div class="whitespace-nowrap text-neutral-700">Importo totale IVA:</div>
+                    </td>
+                    <td class="border-b p-3 text-right">
+                    <div class="whitespace-nowrap text-neutral-700">€'.number_format($this->invoice->vat,2,',','.').'</div>
+                    </td>
+                </tr>';
+        }
+        else{
+            $totaleText = 'Totale:';
+            $tdIva = '<td class="border-b-2 pb-3 pl-2 pr-4 text-right font-bold " style="border-color: #0d172b; color: #0d172b;" >Totale</td>';
+            $trIva = '';
+        }
+
         // 5) Monta array variabili
         $vars = [
             '{{ $invoiceDate }}'         => Carbon::parse($this->invoice->issue_date)->format('d/m/Y'),
@@ -110,6 +140,9 @@ class InvoiceRenderer
             '{{ $invoiceRows }}'         => $invoiceRows,
             '{{ $paymentMethodBlock }}'  => $paymentMethodBlock,
             '{{ $paymentScheduleBlock }}'=> $paymentScheduleBlock,
+            '{{ $tdIva }}'               => $tdIva,
+            '{{ $trIva }}'               => $trIva,
+            '{{ $totaleText }}'          => $totaleText,
             // dati cliente
             '{{ $clientName }}'     => $client->name ?? null,
             '{{ $clientPIVA }}'     => $client->piva ?? null,

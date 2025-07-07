@@ -16,9 +16,11 @@
     <td class="border-b py-3 pl-2 text-right">
       €{{ number_format((float) ($item['unit_price'] ?? $item['prezzo']), 2, ',', '.') }}
     </td>
-    <td class="border-b py-3 pl-2 text-right">
-      {{ number_format((float) ($item['vat_rate'] ?? $item['iva']), 0, ',', '.') }}%
-    </td>
+    @if($company->regime_fiscale !== 'RF19')
+      <td class="border-b py-3 pl-2 text-right">
+        {{ number_format((float) ($item['vat_rate'] ?? $item['iva']), 0, ',', '.') }}%
+      </td>
+    @endif
     <td class="border-b py-3 pl-2 pr-4 text-right">
       €{{ number_format(
         (float) ($item['quantity'] ?? $item['quantita']) 

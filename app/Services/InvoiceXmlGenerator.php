@@ -56,7 +56,7 @@ class InvoiceXmlGenerator
 
         $regime = $isForf
             ? 'RF19'
-            : ($company->regime_fiscale ?: 'RF19');
+            : ($company->regime_fiscale ?: 'RF01');
 
         if (! empty($company->rea_ufficio) && ! empty($company->rea_numero)) {
             $reaXml = "
@@ -150,8 +150,13 @@ class InvoiceXmlGenerator
               <Importo>".number_format($invoice->global_discount,2,'.','')."</Importo>
             </ScontoMaggiorazione>";
         }
-        $bollo = $invoice->total > 77.47
-            ? '<DatiBollo><BolloVirtuale>SI</BolloVirtuale><ImportoBollo>2.00</ImportoBollo></DatiBollo>'
+        
+        $hasOnlyZeroIva = $invoice->items->every(function ($item) {
+            return floatval($item->vat_rate) == 0;
+        });
+
+        $bollo = ($hasOnlyZeroIva && $invoice->total > 77.47)
+            ? '<DatiBollo><BolloVirtuale>SI</BolloVirtuale><ImportoBollo>2.00</ImportoBollo>'
             : '';
 
         $dataForm = $invoice->issue_date->format('d/m/Y');

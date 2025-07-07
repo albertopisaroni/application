@@ -14,18 +14,28 @@ class NuovaManualeRequest extends FormRequest
      */
     protected function prepareForValidation()
     {
-        // articoli come oggetto → wrap in array
-        if ($this->has('articoli') && ! is_array(array_values($this->input('articoli')))) {
+        // Se "cliente" non è un array o è un oggetto singolo, lo trasformo in array vuoto o corretto
+        if (!is_array($this->input('cliente')) || array_keys($this->input('cliente')) === range(0, count($this->input('cliente')) - 1)) {
             $this->merge([
-                'articoli' => [ $this->input('articoli') ],
+                'cliente' => [],
             ]);
         }
 
-        // scadenze come oggetto → wrap in array
-        if ($this->has('scadenze') && ! is_array(array_values($this->input('scadenze')))) {
+        // Se "articoli" non è un array o è un singolo oggetto → lo avvolgo in array
+        if (!is_array($this->input('articoli')) || array_keys($this->input('articoli')) !== range(0, count($this->input('articoli')) - 1)) {
             $this->merge([
-                'scadenze' => [ $this->input('scadenze') ],
+                'articoli' => [$this->input('articoli')],
             ]);
+        }
+
+        // Stessa cosa per "scadenze"
+        if ($this->has('scadenze')) {
+            $scadenze = $this->input('scadenze');
+            if (!is_array($scadenze) || array_keys($scadenze) !== range(0, count($scadenze) - 1)) {
+                $this->merge([
+                    'scadenze' => [$scadenze],
+                ]);
+            }
         }
     }
 
@@ -53,6 +63,7 @@ class NuovaManualeRequest extends FormRequest
             'intestazione'      => 'nullable|string',
             'note'              => 'nullable|string',
             'metodo_pagamento'  => 'required|string|exists:payment_methods,name',
+            'paid'              => 'nullable|numeric|min:0',
 
             // --- articoli ---
             'articoli'             => 'required|array|min:1',
@@ -68,7 +79,10 @@ class NuovaManualeRequest extends FormRequest
             'scadenze.*.value'     => 'required_with:scadenze|numeric|min:0',
             'scadenze.*.type'      => 'required_with:scadenze|in:percent,amount',
 
-            'invia_sdi'            => 'nullable|boolean',
+            'invia_sdi'             => 'nullable|boolean',
+            'emails'                => 'nullable|array',
+            'emails.*'              => 'email',
+
         ];
     }
 }

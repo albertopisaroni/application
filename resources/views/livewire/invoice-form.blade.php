@@ -94,10 +94,12 @@
                         <label class="block text-sm font-medium mb-1">Prezzo</label>
                         <input type="number" step="0.01" wire:model.live="items.{{ $index }}.unit_price" class="w-full border rounded px-2 py-1">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">IVA %</label>
-                        <input type="number" step="0.01" wire:model.live="items.{{ $index }}.vat_rate" class="w-full border rounded px-2 py-1">
-                    </div>
+                    @if($company->regime_fiscale !== 'RF19')
+                        <div>
+                            <label class="block text-sm font-medium mb-1">IVA %</label>
+                            <input type="number" step="0.01" wire:model.live="items.{{ $index }}.vat_rate" class="w-full border rounded px-2 py-1">
+                        </div>
+                    @endif
                     <div>
                         <button type="button" wire:click="removeItem({{ $index }})" class="text-red-500 hover:underline text-sm">Rimuovi</button>
                     </div>

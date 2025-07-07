@@ -19,6 +19,7 @@
         "league/flysystem-aws-s3-v3": "^3.29",
         "livewire/livewire": "^3.0",
         "mews/purifier": "^3.4",
+        "newo-io/laravel-sdk": "^1.0",
         "robertogallea/laravel-codicefiscale": "^2.2",
         "socialiteproviders/microsoft": "^4.6",
         "stripe/stripe-php": "^17.1",

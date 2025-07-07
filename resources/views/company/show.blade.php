@@ -91,7 +91,7 @@
     <div>
         <h2 class="text-xl font-semibold mb-2">Token API</h2>
         <div class="bg-white p-4 rounded shadow mb-4">
-            <form method="POST" action="{{ route('company.tokens.store', $company) }}">
+            <form method="POST" action="{{ route('company.tokens.store', ['company' => $company]) }}">
                 @csrf
                 <div class="grid grid-cols-2 gap-4 items-end">
                     <div>

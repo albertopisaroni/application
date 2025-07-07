@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "88f24c0ff11cb47238456de4684b981d",
+    "content-hash": "d4e856661fe69b939571c00568ba7ec3",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -4157,6 +4157,51 @@
                 "source": "https://github.com/nette/utils/tree/v4.0.6"
             },
             "time": "2025-03-30T21:06:30+00:00"
+        },
+        {
+            "name": "newo-io/laravel-sdk",
+            "version": "1.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/newo-io/laravel-sdk.git",
+                "reference": "aa6e162efd2c3f45c9a1387cd97a4d7a3457c3a1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/newo-io/laravel-sdk/zipball/aa6e162efd2c3f45c9a1387cd97a4d7a3457c3a1",
+                "reference": "aa6e162efd2c3f45c9a1387cd97a4d7a3457c3a1",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/support": ">=9.0",
+                "php": ">=8.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "Newo": "Newo\\Sdk\\Facades\\Newo"
+                    },
+                    "providers": [
+                        "Newo\\Sdk\\NewoServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Newo\\Sdk\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "SDK Laravel per integrare le API di Newo",
+            "support": {
+                "issues": "https://github.com/newo-io/laravel-sdk/issues",
+                "source": "https://github.com/newo-io/laravel-sdk/tree/1.0.2"
+            },
+            "time": "2025-07-07T12:58:12+00:00"
         },
         {
             "name": "nikic/php-parser",

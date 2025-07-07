@@ -405,7 +405,7 @@ class InvoiceForm extends Component
             if (! empty($recipients)) {
                 foreach ($recipients as $email) {
                     \Mail::to($email)
-                        ->send(new \App\Mail\InvoiceMail($invoice));
+                        ->send(new \App\Mail\InvoiceMail($invoice, $company));
                     Log::info("📤 Fattura inviata a: $email");
                 }
             } else {
@@ -476,7 +476,7 @@ class InvoiceForm extends Component
             'description' => '',
             'quantity' => 1,
             'unit_price' => 0,
-            'vat_rate' => 0,
+            'vat_rate' => $this->company->regime_fiscale !== 'RF19' ? 22 : 0,
             'unit_of_measure' => '',
         ];
     }
@@ -630,6 +630,7 @@ class InvoiceForm extends Component
 
         return view('livewire.invoice-form', [
             'totals' => $totals,
+            'company' => $this->company,
         ]);
     }
 

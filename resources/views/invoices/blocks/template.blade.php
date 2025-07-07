@@ -725,7 +725,9 @@ video {
               <td class="border-b-2 pb-3 pl-2 font-bold " style="border-color: #0d172b; color: #0d172b;" >Dettaglio</td>
               <td class="border-b-2 pb-3 pl-2 text-right font-bold " style="border-color: #0d172b; color: #0d172b;" >Q.tà</td>
               <td class="border-b-2 pb-3 pl-2 text-right font-bold " style="border-color: #0d172b; color: #0d172b;" >Prezzo unitario</td>
-<td class="border-b-2 pb-3 pl-2 text-right font-bold " style="border-color: #0d172b; color: #0d172b;" >IVA (%)</td>
+              @if($company->regime_fiscale !== 'RF19')
+                <td class="border-b-2 pb-3 pl-2 text-right font-bold " style="border-color: #0d172b; color: #0d172b;" >IVA (%)</td>
+              @endif
               <td class="border-b-2 pb-3 pl-2 pr-4 text-right font-bold " style="border-color: #0d172b; color: #0d172b;" >Totale (IVA escl.)</td>
             </tr>
           </thead>

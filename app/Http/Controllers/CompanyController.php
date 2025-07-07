@@ -135,7 +135,7 @@ class CompanyController extends Controller
             'expires_in' => 'required',
         ]);
 
-        $company = Auth::user()->companies()->firstOrFail();
+        $company = Auth::user()->companies()->findOrFail($request->company);
 
         $plainToken = Str::random(60);
 

@@ -36,12 +36,8 @@
         class="w-[250px] bg-white z-50 border-r border-[#E8E8E8] flex flex-col justify-between pb-4 pt-6 px-4 overflow-auto transition-all duration-200 ease-in"
     >
         <div>
-            <!-- Header con logo e nome società -->
-            <a href="{{ route('company.show') }}" wire:navigate class="flex items-center mb-6 space-x-2 my-1">
-                <img class="w-8 h-8 rounded-full" alt="" src="{{ Auth::user()->currentCompany?->logo }}">
-                <span class="text-sm font-normal uppercase overflow-hidden text-ellipsis whitespace-nowrap mx-2 !mr-4">{{ Auth::user()->currentCompany?->name }}</span>
-                <svg class="size-3.5 absolute right-4 mt-[2px] mr-1" :class="mainSidebar ? 'hidden' : '' " xmlns="http://www.w3.org/2000/svg" width="8" height="8" fill="currentColor" viewBox="0 0 8 8" class="cMc"><path d="M5.493 1.999a.234.234 0 01-.175-.075L3.998.604l-1.323 1.32c-.1.1-.255.1-.355 0-.1-.1-.1-.255 0-.355L3.819.075c.1-.1.255-.1.355 0l1.499 1.499c.1.1.1.255 0 .355a.251.251 0 01-.175.075l-.005-.005zm0 3.997a.234.234 0 00-.175.075l-1.32 1.32L2.68 6.07c-.1-.1-.255-.1-.355 0-.1.1-.1.255 0 .355l1.499 1.499c.1.1.255.1.355 0l1.499-1.499c.1-.1.1-.255 0-.355a.251.251 0 00-.175-.075h-.01z"></path></svg>
-            </a>
+
+            @livewire('company-switcher')
 
             <!-- Navigazione -->
             <nav class="space-y-1 pt-3">
@@ -260,7 +256,7 @@
                 class="space-y-3"
             >
                 <a href="#" class="block hover:text-gray-900 truncate">Impostazioni</a>
-                <a href="#" class="block hover:text-gray-900 truncate">Gestione utenti</a>
+                <a href="{{ route('company.show') }}" wire:navigate class="block hover:text-gray-900 truncate">Gestione utenti</a>
                 <a href="#" class="block hover:text-gray-900 truncate">Integrazioni e partnership</a>
                 <a href="#" class="block hover:text-gray-900 truncate">Consiglia Newo</a>
             </div>

@@ -55,6 +55,7 @@ class FattureController extends Controller
      * @bodyParam intestazione string nullable Testo da inserire nelle note di intestazione.  
      * @bodyParam note string nullable Note aggiuntive.  
      * @bodyParam metodo_pagamento string required Nome del metodo di pagamento.  
+     * @bodyParam paid number nullable Importo già incassato (se presente, viene creato un pagamento).
      *
      * @bodyParam articoli array[] required Elenco degli articoli.  
      * @bodyParam articoli.*.nome string required Nome articolo.  
@@ -62,6 +63,8 @@ class FattureController extends Controller
      * @bodyParam articoli.*.prezzo number required Prezzo unitario.  
      * @bodyParam articoli.*.iva number required Aliquota IVA (%).  
      * @bodyParam articoli.*.descrizione string nullable Descrizione articolo.  
+     * 
+     * @bodyParam emails string[] nullable Altre email a cui inviare la fattura. Example: ["info@azienda.it", "contabilita@azienda.it"]
      *
      * @bodyParam scadenze array[] nullable Scadenze di pagamento (se omesso, 30gg da issue_date).  
      * @bodyParam scadenze.*.date date required Data scadenza (YYYY-MM-DD).  
@@ -208,7 +211,7 @@ public function nuovaPiva(NuovaPivaRequest $request)
 
 
 
-    protected function creaFattura(array $data, bool $dispatchJob): Invoice
+    protected function creaFattura(array $data, bool $dispatchJob)
     {
         $company = request()->company;
         DB::beginTransaction();
@@ -223,7 +226,7 @@ public function nuovaPiva(NuovaPivaRequest $request)
   
 
             // NUMBERING
-            $num = InvoiceNumbering::where('name',$data['numerazione'])->firstOrFail();
+            $num = InvoiceNumbering::where('name',$data['numerazione'])->where('company_id', $company->id)->firstOrFail();
 
             // CREA FATTURA
             $invoice = Invoice::create([
@@ -266,15 +269,29 @@ public function nuovaPiva(NuovaPivaRequest $request)
             $invoice->total    = $subtotal + $vat - ($data['sconto'] ?? 0);
             $invoice->save();
 
+            // PAGAMENTO DIRETTO (facoltativo)
+            if (!empty($data['paid']) && $data['paid'] > 0) {
+                $invoice->payments()->create([
+                    'invoice_id'    => $invoice->id,
+                    'amount'        => $data['paid'],
+                    'payment_date'  => now(),
+                    'note'          => 'Pagamento inserito al momento della creazione della fattura',
+                ]);
+            }
+
             // INCREMENTA PROGRESSIVO
             $num->increment('current_number');
 
             // SCADENZE
-            $schedules = $data['scadenze'] ?? [[
-                'date'=>Carbon::parse($data['issue_date'])->addDays(30)->toDateString(),
-                'value'=>$invoice->total,
-                'type'=>'amount'
-            ]];
+            $schedules = $data['scadenze'] ?? [];
+
+            if (empty($schedules)) {
+                $schedules = [[
+                    'date'  => now()->toDateString(),
+                    'value' => $invoice->total,
+                    'type'  => 'amount',
+                ]];
+            }
 
             foreach($schedules as $sc){
                 $raw   = (float)$sc['value'];
@@ -352,13 +369,32 @@ public function nuovaPiva(NuovaPivaRequest $request)
                 $recipients = $client->contacts()->where('receives_invoice_copy', 1)->pluck('email')->toArray();
 
                 foreach ($recipients as $email) {
-                    \Mail::to($email)->send(new \App\Mail\InvoiceMail($invoice));
+                    \Mail::to($email)->send(new \App\Mail\InvoiceMail($invoice, $company));
                 }
 
             }
 
             DB::commit();
-            return $invoice;
+            $invoice->makeHidden([
+                'numbering',
+                'company',
+                'client',
+                'company_id',
+                'client_id',
+                'numbering_id',
+                'payment_method_id',
+                'withholding_tax',
+                'inps_contribution',
+                'save_notes_for_future',
+                'updated_at',
+                'created_at',
+                'id',
+                'pdf_path',
+            ]);
+            return [
+                'success' => true,
+                'invoice' => $invoice,
+            ];
         }
         catch(\Throwable $e){
             DB::rollBack();
