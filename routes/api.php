@@ -6,6 +6,7 @@ use App\Http\Middleware\ApiTokenMiddleware;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\FattureController;
 use App\Http\Controllers\StripeConnectController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\OpenApiController;
 use App\Models\Registration;
 use Illuminate\Support\Facades\Log;
@@ -20,6 +21,7 @@ Route::get('/', fn () => redirect(config('app.docs_url')))->withoutMiddleware(Ap
 
 
 Route::get('/stripe/connect/callback', [StripeConnectController::class, 'callback'])->withoutMiddleware(ApiTokenMiddleware::class)->name('stripe.connect.callback');
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->withoutMiddleware(ApiTokenMiddleware::class)->name('stripe.webhook');
 Route::post('/openapi/sdi/callback', [OpenApiController::class, 'sdiCallback'])->withoutMiddleware(ApiTokenMiddleware::class)->name('openapi.sdi.callback');
 
 /**
