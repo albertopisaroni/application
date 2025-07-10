@@ -137,3 +137,21 @@ Route::prefix('fatture')->group(function () {
     Route::post('/nuova/piva', [FattureController::class, 'nuovaPiva']);
 });
 
+
+
+
+/**
+ * FiscoApi: avvio sessione (protetta)
+ *
+ * @hideFromAPIDocumentation
+ */
+Route::post('/fiscoapi/session', [\App\Http\Controllers\Api\FiscoapiSessionController::class, 'store']);
+
+// 
+/**
+ * FiscoApi: webhook aggiornamenti (pubblica)
+ *
+ * @hideFromAPIDocumentation
+ */
+Route::post('/fiscoapi/webhook', [\App\Http\Controllers\Api\FiscoapiSessionController::class, 'webhook'])->withoutMiddleware(ApiTokenMiddleware::class);
+

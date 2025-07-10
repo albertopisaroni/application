@@ -89,4 +89,9 @@ return [
         ],
     ],
 
+    'fiscoapi' => [
+        'secret' => env('FISCOAPI_SECRET'),
+        'base_url' => env('FISCOAPI_BASE_URL', 'https://api.fiscoapi.com/api_esterne'),
+    ],
+
 ];

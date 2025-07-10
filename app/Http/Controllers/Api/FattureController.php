@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\InvoiceTemplate;
 use App\Models\Contact;
+use App\Models\MetaPiva;
 
 
 
@@ -126,35 +127,64 @@ public function nuovaPiva(NuovaPivaRequest $request)
 {
 
     // 0) Recupera dati anagrafici via OpenAPI
-    $resp = Http::withHeaders([
-            'Authorization' => 'Bearer '.config('services.openapi.company.token'),
-        ])
-        ->get(
-            env('OPENAPI_COMPANY_URL').'/IT-start/'. ltrim($request->piva, 'IT')
-        )
-        ->throw()
-        ->json('data.0');
-
-    $address = $resp['address']['registeredOffice'] ?? [];
-    $clienteData = [
-        'company_id'=> $request->company->id,
-        'name'      => $resp['companyName'] ?? '',
-        'piva'      => $request->piva,
-        'address'   => $address['streetName'] ?? '',
-        'cap'       => $address['zipCode'] ?? '',
-        'city'      => $address['town'] ?? '',
-        'province'  => $address['province'] ?? '',
-        'country'   => 'IT',
-        'sdi'       => $resp['sdiCode'] ?? '',
-        'pec'       => null,
-    ];
-    if ($clienteData['sdi'] === '0000000') {
-        $pec = Http::withHeaders([
-                'Authorization'=> 'Bearer '.config('services.openapi.company.token'),
+    $piva = ltrim($request->piva, 'IT');
+    $metaPiva = MetaPiva::where('piva', $piva)->first();
+    if ($metaPiva) {
+        $clienteData = [
+            'company_id'=> $request->company->id,
+            'name'      => $metaPiva->name,
+            'piva'      => $metaPiva->piva,
+            'address'   => $metaPiva->address,
+            'cap'       => $metaPiva->cap,
+            'city'      => $metaPiva->city,
+            'province'  => $metaPiva->province,
+            'country'   => $metaPiva->country,
+            'sdi'       => $metaPiva->sdi,
+            'pec'       => $metaPiva->pec,
+        ];
+    } else {
+        $resp = Http::withHeaders([
+                'Authorization' => 'Bearer '.config('services.openapi.company.token'),
             ])
-            ->get(env('OPENAPI_COMPANY_URL').'/IT-pec/'.ltrim($request->piva,'IT'))
-            ->json('data.0.pec');
-        $clienteData['pec'] = $pec;
+            ->get(
+                env('OPENAPI_COMPANY_URL').'/IT-start/'. $piva
+            )
+            ->throw()
+            ->json('data.0');
+
+        $address = $resp['address']['registeredOffice'] ?? [];
+        $clienteData = [
+            'company_id'=> $request->company->id,
+            'name'      => $resp['companyName'] ?? '',
+            'piva'      => $request->piva,
+            'address'   => $address['streetName'] ?? '',
+            'cap'       => $address['zipCode'] ?? '',
+            'city'      => $address['town'] ?? '',
+            'province'  => $address['province'] ?? '',
+            'country'   => 'IT',
+            'sdi'       => $resp['sdiCode'] ?? '',
+            'pec'       => null,
+        ];
+        if ($clienteData['sdi'] === '0000000') {
+            $pec = Http::withHeaders([
+                    'Authorization'=> 'Bearer '.config('services.openapi.company.token'),
+                ])
+                ->get(env('OPENAPI_COMPANY_URL').'/IT-pec/'.$piva)
+                ->json('data.0.pec');
+            $clienteData['pec'] = $pec;
+        }
+        // Salva in cache
+        MetaPiva::create([
+            'name' => $clienteData['name'],
+            'piva' => $piva,
+            'address' => $clienteData['address'],
+            'cap' => $clienteData['cap'],
+            'city' => $clienteData['city'],
+            'province' => $clienteData['province'],
+            'country' => $clienteData['country'],
+            'sdi' => $clienteData['sdi'],
+            'pec' => $clienteData['pec'],
+        ]);
     }
 
     // 1) Unisci i validated + i dati cliente appena costruiti
@@ -365,7 +395,7 @@ public function nuovaPiva(NuovaPivaRequest $request)
                     Contact::firstOrCreate(
                         ['client_id' => $client->id, 'email' => $email],
                     );
-                }
+                } 
 
                 $recipients = $client->contacts()->where('receives_invoice_copy', 1)->pluck('email')->toArray();
 

@@ -16,6 +16,11 @@
             <input type="text" name="name" value="{{ old('name') }}" class="w-full border rounded px-3 py-2" required>
         </div>
 
+        <div>
+            <label class="block mb-1 font-medium">Dominio</label>
+            <input type="text" name="domain" value="{{ old('domain') }}" class="w-full border rounded px-3 py-2" placeholder="esempio.com">
+        </div>
+
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="block mb-1 font-medium">Indirizzo</label>

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Contact;
 use App\Models\Company;
 use Illuminate\Support\Facades\Http;
+use App\Models\MetaPiva;
 
 class ContactController extends Controller
 {
@@ -38,6 +39,7 @@ class ContactController extends Controller
     
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'domain' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'cap' => 'nullable|string|max:20',
             'city' => 'nullable|string|max:100',
@@ -96,6 +98,7 @@ class ContactController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'domain' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'cap' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
@@ -198,6 +201,27 @@ class ContactController extends Controller
             $piva = substr($piva, 2);
         }
 
+        // CACHE: cerca prima nella tabella meta_pivas
+        $metaPiva = MetaPiva::where('piva', $piva)->first();
+        if ($metaPiva) {
+            $clientData = [
+                'name' => $metaPiva->name,
+                'domain' => $metaPiva->domain,
+                'piva' => $metaPiva->piva,
+                'address' => $metaPiva->address,
+                'cap' => $metaPiva->cap,
+                'city' => $metaPiva->city,
+                'province' => $metaPiva->province,
+                'country' => $metaPiva->country,
+                'sdi' => $metaPiva->sdi,
+                'pec' => $metaPiva->pec,
+            ];
+            return redirect()->route('contatti.clienti.nuovo')
+                ->withInput($clientData)
+                ->with('autofill', true);
+        }
+
+        // Se non esiste, chiama l'API
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . config('services.openapi.company.token'),
         ])->get(env("OPENAPI_COMPANY_URL") . '/IT-start/' . $piva);
@@ -230,6 +254,9 @@ class ContactController extends Controller
                 $clientData['pec'] = $pecResponse->json()['data'][0]['pec'] ?? null;
             }
         }
+
+        // Salva in cache (meta_pivas)
+        MetaPiva::create($clientData);
 
         // Reindirizza all'edit ma passando i dati come old() o session
         return redirect()->route('contatti.clienti.nuovo')

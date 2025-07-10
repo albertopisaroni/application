@@ -14,6 +14,7 @@ class Client extends Model
         'stripe_customer_id',
         'origin',
         'name',
+        'domain',
         'address',
         'cap',
         'city',
@@ -26,6 +27,22 @@ class Client extends Model
         'phone',
         'hidden',
     ];
+
+    protected static function booted()
+    {
+        static::updated(function ($client) {
+            // Se il client ha un dominio e una P.IVA, aggiorna il MetaPiva corrispondente
+            if ($client->domain && $client->piva) {
+                $metaPiva = \App\Models\MetaPiva::where('piva', $client->piva)
+                    ->whereNull('domain')
+                    ->first();
+                
+                if ($metaPiva) {
+                    $metaPiva->update(['domain' => $client->domain]);
+                }
+            }
+        });
+    }
 
     public function company()
     {
@@ -64,13 +81,31 @@ class Client extends Model
             'gmail.com', 'yahoo.com', 'hotmail.com', 'live.com', 'aol.com', 'outlook.it',
             'outlook.com', 'icloud.com', 'mail.com', 'msn.com', 'protonmail.com',
             'tiscali.it', 'libero.it', 'virgilio.it', 'fastwebnet.it', 'tim.it', 'tin.it',
-            'email.it', 'inwind.it', 'vodafone.it', 'poste.it'
+            'email.it', 'inwind.it', 'vodafone.it', 'poste.it',
+            'alice.it', 'aruba.it', 'fastweb.it', 'infinito.it', 'jumpy.it', 'katamail.com',
+            'libero.it', 'mclink.it', 'pec.it', 'pec.it', 'register.it', 'supereva.it',
+            'tiscali.it', 'virgilio.it', 'webmail.it', 'wind.it', 'yahoo.it', 'ymail.com',
+            'hotmail.it', 'live.it', 'msn.it', 'outlook.it', 'windowslive.com',
+            'gmx.com', 'gmx.it', 'web.de', 'freenet.de', 't-online.de',
+            'laposte.net', 'orange.fr', 'free.fr', 'wanadoo.fr',
+            'terra.com', 'terra.es', 'yahoo.es', 'gmail.es',
+            'rediffmail.com', 'sify.com', 'indiatimes.com',
+            'naver.com', 'daum.net', 'hanmail.net',
+            'qq.com', '163.com', '126.com', 'sina.com',
+            'yandex.ru', 'mail.ru', 'rambler.ru',
+            'seznam.cz', 'centrum.cz',
+            'wp.pl', 'onet.pl', 'interia.pl',
+            'abv.bg', 'mail.bg',
+            'seznam.cz', 'centrum.cz',
+            'wp.pl', 'onet.pl', 'interia.pl',
+            'abv.bg', 'mail.bg'
         ]); 
     }
 
     public function getLogoAttribute(): string
     {
-        $domain = $this->primaryContactDomain();
+        // Usa il campo domain se presente, altrimenti fallback al dominio dell'email del contatto primario
+        $domain = $this->domain ?: $this->primaryContactDomain();
     
         if (!$domain || $this->isPersonalEmailDomain($domain)) {
             return 'https://ui-avatars.com/api/?format=svg&name=' . urlencode($this->name);

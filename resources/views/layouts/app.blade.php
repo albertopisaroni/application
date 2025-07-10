@@ -33,6 +33,8 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
 
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     </head>
 
     <body class="h-full">
@@ -45,6 +47,12 @@
 
             <main class="p-8">
                 {{ $slot }}
+
+                @if (session('status') !== null)
+                    @if(session('status') == 'swal') 
+                        <script> setTimeout(function(){ Swal.fire({ title: {!! json_encode(session('title')) !!}, text: {!! json_encode(session('text')) !!}, icon: {!! json_encode(session('icon')) !!}, confirmButtonText: 'Chiudi' }); }, 1); </script> 
+                    @endif
+                @endif
             </main>
 
         </div>

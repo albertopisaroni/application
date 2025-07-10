@@ -94,3 +94,76 @@ html, body{
     from{transform:translate(-50%,-50%) scale(.7);opacity:1}
     to  {transform:translate(-50%,-50%) scale(1.6);opacity:0}
   }
+
+
+  #nprogress .bar { background: #ad96ff !important; }
+
+.swal2-confirm{
+
+  transition: all .2sease-in-out;
+  align-items: center;
+  background-color: #fff;
+  height: 40px;
+  margin-right: .5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  border: none;
+  color: #1f2937;
+  font-size: .85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  outline: none;
+  box-shadow: inset 0 0 0 1px #e5e7eb;
+
+}
+
+/* Effetto hover */
+.swal2-confirm:hover {
+  box-shadow: inset 0 0 0 2px #ad96ff; /* hover:ring-2 hover:ring-primary */
+  background-color: white; 
+  background-image: none !important;
+  color: #ad96ff; /* hover:text-primary */
+}
+
+/* Effetto focus */
+.swal2-confirm:focus {
+  box-shadow: inset 0 0 0 1px #E5E7EB; /* Torna al colore originale */
+  background-color: white; 
+  background-image: none !important;
+  color: #1F2937;
+}
+
+/* Effetto mouseout per ripristinare */
+.swal2-confirm:focus:not(:focus-visible),
+.swal2-confirm:hover:not(:hover-visible) {
+  box-shadow: inset 0 0 0 1px #E5E7EB; /* Torna al colore originale */
+  background-color: white; 
+  background-image: none !important;
+  color: #1F2937;
+}
+
+div:where(.swal2-icon){
+  margin: 3em auto 0 !important;
+  zoom: 65% !important;
+}
+
+.swal2-actions{
+  margin-top: .75rem !important;
+}
+
+.swal2-html-container{
+  font-size: .95rem !important;
+  text-transform: uppercase !important;
+  padding-left: 4.5rem !important;
+  padding-right: 4.5rem !important;
+}
+
+.swal2-title{
+  text-transform: uppercase !important;
+  font-size: 1.1rem !important;
+  margin-top: 0.5rem !important;
+}
+
+.swal2-popup, .swal2-modal{
+  border-radius: .75rem !important;
+}

@@ -4,6 +4,9 @@
 
         <div class="flex items-center gap-x-4">
 
+        <livewire:fiscoapi-session-button />
+
+
             @if ($yearFilter || $search || $paymentStatusFilter)
             <button wire:click="resetFilters" class="items-center gap-x-2 flex bg-[#e8e8e8] pr-4 pl-3 py-2 text-sm rounded-[4px] transition">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">

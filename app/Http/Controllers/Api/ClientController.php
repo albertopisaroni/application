@@ -38,6 +38,7 @@ class ClientController extends Controller
     {
         $data = $request->validate([
             'name'     => 'required|string|max:255',
+            'domain'   => 'nullable|string|max:255',
             'email'    => 'nullable|email',
             'phone'    => 'nullable|string',
             'address'  => 'nullable|string',
@@ -115,6 +116,7 @@ class ClientController extends Controller
         $client = Client::create([
             'company_id' => $request->company->id,
             'name'       => $info['nome'] ?? 'Sconosciuto',
+            'domain'     => null, // Il dominio verrà estratto successivamente se disponibile
             'address'    => $info['indirizzo'] ?? null,
             'cap'        => $info['cap'] ?? null,
             'city'       => $info['comune'] ?? null,
