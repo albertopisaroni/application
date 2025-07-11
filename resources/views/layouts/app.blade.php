@@ -39,9 +39,8 @@
 
     <body class="h-full">
 
-        @persist('sidebar')
-	        @include('partials/sidebar')
-        @endpersist
+        
+        @include('partials/sidebar')   
 
         <div class="lg:pl-[315px]">
 

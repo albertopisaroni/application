@@ -25,7 +25,34 @@ class InvoiceRenderer
         $this->paymentSchedule = $paymentSchedule;
         $this->splitPayment = $splitPayment;
         $this->dueDate      = $dueDate;
-        $this->templateHtml = $invoice->numbering->template->blade; // relazione Invoice→Numbering→Template
+        // Carica il template corretto in base al tipo di documento
+        $this->templateHtml = $this->loadTemplate();
+    }
+
+    private function loadTemplate(): string
+    {
+        $numbering = $this->invoice->numbering;
+        $template = null;
+
+        // Determina quale template caricare in base al tipo di documento
+        if ($this->invoice->document_type === 'TD04') {
+            // Note di credito - usa template_credit_id
+            if ($numbering->template_credit_id) {
+                $template = \App\Models\InvoiceTemplate::find($numbering->template_credit_id);
+            }
+        } else {
+            // Fatture e altri documenti - usa template_invoice_id
+            if ($numbering->template_invoice_id) {
+                $template = \App\Models\InvoiceTemplate::find($numbering->template_invoice_id);
+            }
+        }
+
+        // Se non trova il template specifico, usa il primo disponibile
+        if (!$template) {
+            $template = \App\Models\InvoiceTemplate::first();
+        }
+
+        return $template?->blade ?? '';
     }
 
     public function renderHtml(): string
@@ -51,35 +78,57 @@ class InvoiceRenderer
             ? view('invoices.blocks.payment_method', compact('pm'))->render()
             : '';
 
-            if (! $this->splitPayment) {
-                // single payment: valore = totale fattura
-                $dt = isset($this->dueDate) 
-                    ? Carbon::parse($this->dueDate)->format('d/m/Y') 
-                    : Carbon::parse($this->invoice->issue_date)->addDays(30)->format('d/m/Y');
-                $amt = number_format($this->invoice->total, 2, ',', '.');
-                $paymentScheduleBlock = <<<HTML
-                <div class="px-14 py-3 text-sm">
-                  <p class="font-bold">Scadenze pagamento:</p>
-                  <p>€{$amt} – {$dt}</p>
-                </div>
-                HTML;
-            } else {
-                // split payments: cicla su tutte le rate
-                $lines = '';
-                foreach ($this->paymentSchedule as $p) {
-                    $rawAmt = ($p['type'] ?? '') === 'percent'
-                        ? round($this->invoice->total * ($p['value']/100), 2)
-                        : floatval($p['value']);
-                    $amt = number_format($rawAmt, 2, ',', '.');
-                    $dt  = Carbon::parse($p['date'])->format('d/m/Y');
-                    $lines .= "<p>€{$amt} – {$dt}</p>";
+            // Gestione $paymentScheduleBlock in base al tipo di documento
+            if ($this->invoice->document_type === 'TD04') {
+                // Note di credito: mostra fattura di riferimento se presente
+                // Carica esplicitamente la relazione originalInvoice
+                $this->invoice->load('originalInvoice');
+                
+                if ($this->invoice->originalInvoice) {
+                    $originalInvoice = $this->invoice->originalInvoice;
+                    $originalDate = Carbon::parse($originalInvoice->issue_date)->format('d/m/Y');
+                    $paymentScheduleBlock = <<<HTML
+                    <div class="px-14 py-3 text-sm">
+                      <p class="font-bold">Fattura di riferimento:</p>
+                      <p>Fattura {$originalInvoice->invoice_number} del {$originalDate}</p>
+                    </div>
+                    HTML;
+                } else {
+                    // Nota di credito senza fattura originale
+                    $paymentScheduleBlock = '';
                 }
-                $paymentScheduleBlock = <<<HTML
-                <div class="px-14 py-3 text-sm">
-                  <p class="font-bold">Scadenze pagamento:</p>
-                  {$lines}
-                </div>
-                HTML;
+            } else {
+                // Fatture normali: mostra scadenze di pagamento
+                if (! $this->splitPayment) {
+                    // single payment: valore = totale fattura
+                    $dt = isset($this->dueDate) 
+                        ? Carbon::parse($this->dueDate)->format('d/m/Y') 
+                        : Carbon::parse($this->invoice->issue_date)->addDays(30)->format('d/m/Y');
+                    $amt = number_format($this->invoice->total, 2, ',', '.');
+                    $paymentScheduleBlock = <<<HTML
+                    <div class="px-14 py-3 text-sm">
+                      <p class="font-bold">Scadenze pagamento:</p>
+                      <p>€{$amt} – {$dt}</p>
+                    </div>
+                    HTML;
+                } else {
+                    // split payments: cicla su tutte le rate
+                    $lines = '';
+                    foreach ($this->paymentSchedule as $p) {
+                        $rawAmt = ($p['type'] ?? '') === 'percent'
+                            ? round($this->invoice->total * ($p['value']/100), 2)
+                            : floatval($p['value']);
+                        $amt = number_format($rawAmt, 2, ',', '.');
+                        $dt  = Carbon::parse($p['date'])->format('d/m/Y');
+                        $lines .= "<p>€{$amt} – {$dt}</p>";
+                    }
+                    $paymentScheduleBlock = <<<HTML
+                    <div class="px-14 py-3 text-sm">
+                      <p class="font-bold">Scadenze pagamento:</p>
+                      {$lines}
+                    </div>
+                    HTML;
+                }
             }
 
         $intestazione = $this->invoice->header_notes 
@@ -162,6 +211,7 @@ class InvoiceRenderer
             '{{ $companyPecBlock }}'  => $company->pec_email
                 ? "<p>PEC: {$company->pec_email}</p>"
                 : '',
+
         ];
 
         return str_replace(
@@ -170,6 +220,8 @@ class InvoiceRenderer
             $this->templateHtml
         );
     }
+
+
 
     public function renderPdf(): string
     {

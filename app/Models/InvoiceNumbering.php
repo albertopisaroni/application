@@ -11,12 +11,16 @@ class InvoiceNumbering extends Model
         'company_id',
         'type',
         'prefix',
-        'current_number',
+        'current_number_invoice',
+        'current_number_autoinvoice',
+        'current_number_credit',
         'default_header_notes',
         'default_footer_notes',
         'default_payment_method_id',
         'name',
-        'template_id',
+        'template_invoice_id',
+        'template_autoinvoice_id',
+        'template_credit_id',
         'logo_base64',
         'logo_base64_square',
     ];
@@ -83,10 +87,20 @@ class InvoiceNumbering extends Model
         return $this->belongsTo(PaymentMethod::class, 'default_payment_method_id');
     }
 
-    public function template()
+
+    public function templateInvoice()
     {
-        // se la tua colonna si chiama `template_id`:
-        return $this->belongsTo(InvoiceTemplate::class, 'template_id');
+        return $this->belongsTo(InvoiceTemplate::class, 'template_invoice_id');
+    }
+
+    public function templateAutoinvoice()
+    {
+        return $this->belongsTo(InvoiceTemplate::class, 'template_autoinvoice_id');
+    }
+
+    public function templateCredit()
+    {
+        return $this->belongsTo(InvoiceTemplate::class, 'template_credit_id');
     }
 
 

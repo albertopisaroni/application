@@ -61,11 +61,6 @@ class StripeSyncCommand extends Command
             ]);
 
             foreach ($customers->data as $customer) {
-                // Estrai il dominio dall'email se presente
-                $domain = null;
-                if ($customer->email && str_contains($customer->email, '@')) {
-                    $domain = strtolower(substr(strrchr($customer->email, '@'), 1));
-                }
 
                 $client = Client::updateOrCreate([
                     'stripe_customer_id' => $customer->id,
@@ -74,7 +69,6 @@ class StripeSyncCommand extends Command
                     'stripe_account_id' => $stripeAccount->id,
                     'origin' => 'stripe',
                     'name' => $customer->name,
-                    'domain' => $domain,
                 ]);
 
                 // Se non esiste un contatto per questo cliente, crealo

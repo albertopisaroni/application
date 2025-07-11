@@ -13,6 +13,9 @@ class Dashboard extends Component
     public array $invoiceTotals       = [];
     public array $subscriptionTotals  = [];
     public array $subscriptionForecast = [];
+    public float $invoiceYearTotal    = 0.0;
+    public float $subscriptionYearTotal = 0.0;
+    public float $subscriptionForecastTotal = 0.0;
 
     public function mount()
 {
@@ -34,6 +37,18 @@ class Dashboard extends Component
                 ->sum('total')
         )
         ->toArray();
+
+    // 2b) Totale annuale fatture
+    $this->invoiceYearTotal = Invoice::where('company_id', $companyId)
+        ->whereYear('issue_date', $year)
+        ->sum('total');
+
+    // 2c) Totale annuale abbonamenti
+    $this->subscriptionYearTotal = Subscription::whereHas('client', fn($q) =>
+            $q->where('company_id', $companyId)
+        )
+        ->whereYear('start_date', $year)
+        ->sum('final_amount');
 
     // 3) Totali mensili reali Abbonamenti (nuovi)
     $this->subscriptionTotals = collect(range(1, 12))
@@ -81,6 +96,9 @@ class Dashboard extends Component
                 )
         )
         ->toArray();
+
+    // 6) Totale previsioni annuali abbonamenti (calcolato dopo aver popolato l'array)
+    $this->subscriptionForecastTotal = array_sum($this->subscriptionForecast);
 }
 
     public function render()

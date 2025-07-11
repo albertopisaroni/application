@@ -88,6 +88,8 @@ class InvoiceXmlGenerator
             $aliq  = $isForf ? 0 : max(0, (float) $row->vat_rate);
             $tot   = round($qty * $unit, 2);
 
+
+
             $descr = htmlspecialchars(trim(
                 ($row->name ?: 'Articolo') .
                 ($row->description ? " - {$row->description}" : '')
@@ -142,6 +144,7 @@ class InvoiceXmlGenerator
         // 7) SCONTO, TOTALE, BOLLO, CAUSALE
         // ------------------------------------------
         $totDoc = number_format($invoice->total,2,'.','');
+            
         $scontoXml = '';
         if ($invoice->global_discount > 0) {
             $scontoXml = "
@@ -160,7 +163,24 @@ class InvoiceXmlGenerator
             : '';
 
         $dataForm = $invoice->issue_date->format('d/m/Y');
-        $causale  = "Fattura immediata ({$tipoDoc}) del {$dataForm} N.ro {$num}";
+        
+        // Gestione causale per nota di credito
+        if ($tipoDoc === 'TD04') {
+            $causale = "Nota di credito ({$tipoDoc}) del {$dataForm} N.ro {$num}";
+        } else {
+            $causale = "Fattura immediata ({$tipoDoc}) del {$dataForm} N.ro {$num}";
+        }
+
+        // Sezione DatiFattureCollegate per note di credito
+        $datiFattureCollegateXml = '';
+        if ($tipoDoc === 'TD04' && $invoice->originalInvoice) {
+            $originalInvoice = $invoice->originalInvoice;
+            $datiFattureCollegateXml = "
+            <DatiFattureCollegate>
+              <IdDocumento>{$originalInvoice->invoice_number}</IdDocumento>
+              <Data>{$originalInvoice->issue_date->format('Y-m-d')}</Data>
+            </DatiFattureCollegate>";
+        }
 
         // ---------------------------------------
         // 8) DATI PAGAMENTO + CONTROLLO DATE
@@ -276,6 +296,7 @@ class InvoiceXmlGenerator
           <RiferimentoTesto>Newo.io</RiferimentoTesto>
         </AltriDatiGestionali>
       </DatiGeneraliDocumento>
+      {$datiFattureCollegateXml}
     </DatiGenerali>
     <DatiBeniServizi>
       {$linee}

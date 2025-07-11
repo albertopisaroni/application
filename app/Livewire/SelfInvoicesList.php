@@ -6,7 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Invoice;
 
-class InvoiceList extends Component
+class SelfInvoicesList extends Component
 {
     use WithPagination;
 
@@ -20,7 +20,6 @@ class InvoiceList extends Component
         'yearFilter' => ['except' => null],
         'search' => ['except' => ''],
         'paymentStatusFilter' => ['except' => null],
-
     ];
 
     public function updatingYearFilter()
@@ -43,7 +42,7 @@ class InvoiceList extends Component
         }
     
         $this->years = Invoice::selectRaw('YEAR(fiscal_year) as year')
-            ->whereIn('document_type', ['TD01', 'TD02', 'TD03', 'TD05', 'TD024', 'TD026'])
+            ->whereIn('document_type', ['TD16', 'TD17', 'TD18', 'TD19', 'TD20', 'TD21', 'TD27'])
             ->groupBy('year')
             ->orderByDesc('year')
             ->pluck('year')
@@ -52,12 +51,11 @@ class InvoiceList extends Component
 
     public function render()
     {
-        
         $currentCompanyId = session('current_company_id');
 
         $query = Invoice::with(['client', 'payments'])
             ->where('company_id', $currentCompanyId)
-            ->whereIn('document_type', ['TD01', 'TD02', 'TD03', 'TD05', 'TD024', 'TD026']) // Fatture ordinarie
+            ->whereIn('document_type', ['TD16', 'TD17', 'TD18', 'TD19', 'TD20', 'TD21', 'TD27']) // Autofatture
             ->orderBy('issue_date', 'desc')
             ->orderBy('id', 'desc');
 
@@ -91,8 +89,6 @@ class InvoiceList extends Component
 
         $invoices = $query->paginate($this->perPage);
 
-       
-
         $unpaidInvoices = $allInvoices->filter(fn($invoice) =>
             $invoice->payments->sum('amount') < $invoice->total
         );
@@ -103,11 +99,11 @@ class InvoiceList extends Component
             $invoice->total - $invoice->payments->sum('amount')
         );
 
-        return view('livewire.invoice-list', [
+        return view('livewire.self-invoices-list', [
             'invoices' => $invoices,
             'unpaidCount' => $unpaidCount,
             'paidCount' => $paidCount,
             'unpaidTotal' => $unpaidTotal,
         ]);
     }
-}
+} 

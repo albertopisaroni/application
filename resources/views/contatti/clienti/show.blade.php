@@ -4,6 +4,7 @@
 
         <div class="bg-white p-6 rounded shadow">
             <p class="mb-2"><strong>Nome:</strong> {{ $client->name }}</p>
+            <p class="mb-2"><strong>Dominio:</strong> {{ $client->domain ?: 'Non impostato' }}</p>
             <p class="mb-2"><strong>Indirizzo:</strong> {{ $client->address }}</p>
             <p class="mb-2"><strong>CAP:</strong> {{ $client->cap }}</p>
             <p class="mb-2"><strong>Città:</strong> {{ $client->city }}</p>

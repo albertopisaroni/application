@@ -107,13 +107,11 @@ class ContactController extends Controller
             'piva' => 'nullable|string|max:255',
             'sdi' => 'nullable|string|max:255',
             'pec' => 'nullable|email|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:255',
         ]);
 
         $client->update($validated);
 
-        return redirect()->route('conatti.clienti.show', $client)->with('success', 'Cliente aggiornato con successo.');
+        return redirect()->route('contatti.clienti.show', $client)->with('success', 'Cliente aggiornato con successo.');
     }
 
 
@@ -151,7 +149,7 @@ class ContactController extends Controller
 
     public function clientEdit(Contact $contact)
     {
-        return view('app.contatti.clienti.contacts.edit', compact('contact'));
+        return view('contatti.clienti.contacts.edit', compact('contact'));
     }
 
     public function clientUpdate(Request $request, Contact $contact)

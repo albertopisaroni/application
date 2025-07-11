@@ -173,9 +173,13 @@ class Company extends Model
                 'company_id'     => $company->id,
                 'type'           => 'standard',
                 'prefix'         => null,
-                'current_number' => 0,
+                'current_number_invoice' => 1,
+                'current_number_autoinvoice' => 1,
+                'current_number_credit' => 1,
                 'name'           => 'Standard',
-                'template_id'    => 1,
+                'template_invoice_id' => 1,
+                'template_autoinvoice_id' => 1,
+                'template_credit_id' => 1,
             ]);
 
         });

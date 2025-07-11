@@ -2,7 +2,7 @@
     $path = request()->path();
 
     $selected = match (true) {
-        (str_starts_with($path, 'fatture') || str_starts_with($path, 'abbonamenti')) => 'fatture',
+        (str_starts_with($path, 'fatture') || str_starts_with($path, 'abbonamenti') || str_starts_with($path, 'note-di-credito') || str_starts_with($path, 'autofatture')) => 'fatture',
         str_starts_with($path, 'contatti') => 'contatti',
         str_starts_with($path, 'email') => 'email',
         str_starts_with($path, 'spese') => 'spese',
@@ -378,8 +378,12 @@
                 <h2 class="text-[16px] font-normal text-[#050505] mb-2 mt-0.5">Fatture</h2>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ordinaria</h3>
                 <nav class="space-y-1 text-sm">
-                    <a href="{{ route('fatture.lista') }}" wire:navigate class="block rounded py-1.5 px-2 {{ request()->routeIs('fatture.lista') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Fatture</a>
+                    <a href="{{ route('fatture.lista') }}" wire:navigate class="block rounded py-1.5 px-2 {{ request()->routeIs('fatture.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Fatture</a>
                     <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Preventivi</a>
+                    <a href="{{ route('note-di-credito.lista') }}" wire:navigate class="block rounded py-1.5 px-2 {{ request()->routeIs('note-di-credito.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Note di credito</a>
+                    @if (!Auth::user()->current_company->forfettario)
+                        <a href="{{ route('autofatture.lista') }}" wire:navigate class="block rounded py-1.5 px-2 {{ request()->routeIs('autofatture.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Autofatture</a>
+                    @endif
                 </nav>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ricorrenti</h3>
                 <nav class="space-y-1 text-sm">

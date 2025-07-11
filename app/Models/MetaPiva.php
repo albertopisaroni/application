@@ -42,5 +42,44 @@ class MetaPiva extends Model
                     ->update(['domain' => $metaPiva->domain]);
             }
         });
+
+        static::saving(function ($metaPiva) {
+            // Pulisci il dominio prima di salvarlo
+            if ($metaPiva->domain) {
+                $metaPiva->domain = self::cleanDomain($metaPiva->domain);
+            }
+        });
+    }
+
+    /**
+     * Pulisce un dominio rimuovendo protocolli, www e path
+     */
+    public static function cleanDomain(?string $domain): ?string
+    {
+        if (!$domain) {
+            return null;
+        }
+
+        // Rimuovi protocolli (http://, https://, ftp://, etc.)
+        $domain = preg_replace('/^https?:\/\//', '', $domain);
+        $domain = preg_replace('/^http:\/\//', '', $domain);
+        $domain = preg_replace('/^https:\/\//', '', $domain);
+        $domain = preg_replace('/^ftp:\/\//', '', $domain);
+
+        // Rimuovi www. se presente
+        $domain = preg_replace('/^www\./', '', $domain);
+
+        // Rimuovi path e query string (tutto dopo il primo /)
+        $domain = strtok($domain, '/');
+
+        // Rimuovi spazi e caratteri non validi
+        $domain = trim($domain);
+
+        // Verifica che sia un dominio valido
+        if (empty($domain) || !filter_var('http://' . $domain, FILTER_VALIDATE_URL)) {
+            return null;
+        }
+
+        return strtolower($domain);
     }
 }

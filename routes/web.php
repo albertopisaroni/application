@@ -24,6 +24,7 @@ use App\Http\Controllers\OpenBankingController;
 
 
 use App\Livewire\App\Dashboard;
+use App\Livewire\App\TaxCalculator;
 
 
 
@@ -70,12 +71,24 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
         
         Route::get('/', Dashboard::class)->name('dashboard');
 
+        Route::get('/tasse', TaxCalculator::class)->name('tasse.calculator');
+
         Route::get('/abbonamenti', [AbbonamentiController::class, 'lista'])->name('abbonamenti.lista');
 
         // FATTURE
         Route::get('/fatture', [InvoiceController::class, 'list'])->name('fatture.lista');
         Route::get('/fatture/nuova', [InvoiceController::class, 'create'])->name('fatture.nuova');
         Route::post('/fatture', [InvoiceController::class, 'store'])->name('fatture.store');
+
+        // NOTE DI CREDITO
+        Route::get('/note-di-credito', [InvoiceController::class, 'creditNotesList'])->name('note-di-credito.lista');
+        Route::get('/note-di-credito/nuova', [InvoiceController::class, 'createCreditNote'])->name('note-di-credito.nuova');
+        Route::post('/note-di-credito', [InvoiceController::class, 'storeCreditNote'])->name('note-di-credito.store');
+
+        // AUTOFATTURE
+        Route::get('/autofatture', [InvoiceController::class, 'selfInvoicesList'])->name('autofatture.lista');
+        Route::get('/autofatture/nuova', [InvoiceController::class, 'createSelfInvoice'])->name('autofatture.nuova');
+        Route::post('/autofatture', [InvoiceController::class, 'storeSelfInvoice'])->name('autofatture.store');
 
 
         Route::post('/update-company', function (Request $request) {
@@ -139,8 +152,8 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
             Route::prefix('clienti')->group(function () {
 
 
-                // Lista contatti
-                Route::prefix('contatti')->group(function () {
+                // Lista utenti
+                Route::prefix('utenti')->group(function () {
 
                     Route::post('/{client}', [ContactController::class, 'clientStore'])->name('contatti.clienti.contact.store');
                     Route::delete('/{contact}', [ContactController::class, 'clientDestroy'])->name('contatti.clienti.contact.destroy');

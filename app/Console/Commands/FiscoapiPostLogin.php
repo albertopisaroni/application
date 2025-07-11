@@ -7,6 +7,10 @@ use App\Models\FiscoapiSession;
 use App\Models\User;
 use App\Models\Client;
 use App\Models\MetaPiva;
+use App\Models\Invoice;
+use App\Models\InvoiceNumbering;
+use App\Models\InvoicePaymentSchedule;
+use App\Models\InvoicePayment;
 use App\Services\FiscoApiService;
 use Illuminate\Support\Facades\Http;
 
@@ -162,9 +166,9 @@ class FiscoapiPostLogin extends Command
                 return false;
             }
 
-            // Calcola i periodi di 3 mesi per gli ultimi 3 anni
+            // Calcola i periodi di 3 mesi per gli ultimi 5 anni
             $fine = now();
-            $inizio = $fine->copy()->subYears(3);
+            $inizio = $fine->copy()->subYears(5);
             
             $periodi = [];
             $dataCorrente = $inizio->copy();
@@ -253,6 +257,7 @@ class FiscoapiPostLogin extends Command
                     'periodo_inizio' => $periodo['inizio_data'],
                     'periodo_fine' => $periodo['fine_data'],
                     'numero_fatture' => count($fatture),
+                    'fatture' => $fatture,
                 ]);
 
                 // Cicla tutte le fatture del periodo
@@ -309,17 +314,16 @@ class FiscoapiPostLogin extends Command
             ->where('company_id', $session->user->currentCompany->id)
             ->first();
 
-        if ($clienteEsistente) {
-            \Log::info('Cliente già esistente', [
-                'piva' => $pivaCliente,
-                'nome' => $clienteEsistente->name,
-                'company_id' => $session->user->currentCompany->id,
-            ]);
-            return;
+        if (!$clienteEsistente) {
+            // Crea il cliente
+            $this->creaCliente($pivaCliente, $session);
+            $clienteEsistente = Client::where('piva', $pivaCliente)
+                ->where('company_id', $session->user->currentCompany->id)
+                ->first();
         }
 
-        // Crea il cliente
-        $this->creaCliente($pivaCliente, $session);
+        // Salva la fattura come Invoice se non esiste già
+        $this->salvaFattura($fattura, $clienteEsistente, $session);
     }
 
     /**
@@ -360,7 +364,6 @@ class FiscoapiPostLogin extends Command
                 $clienteData = [
                     'company_id' => $company->id,
                     'name' => $resp['companyName'] ?? '',
-                    'domain' => null, // Il dominio verrà estratto successivamente se disponibile
                     'piva' => $piva,
                     'address' => $address['streetName'] ?? '',
                     'cap' => $address['zipCode'] ?? '',
@@ -411,5 +414,247 @@ class FiscoapiPostLogin extends Command
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Salva una fattura o nota di credito come Invoice se non esiste già
+     */
+    private function salvaFattura(array $fattura, Client $cliente, FiscoapiSession $session)
+    {
+        try {
+            $company = $session->user->currentCompany;
+            
+            // Verifica se la fattura esiste già usando numeroFattura e dataFattura come chiave univoca
+            $numeroFattura = $fattura['numeroFattura'] ?? null;
+            $dataFattura = $fattura['dataFattura'] ?? null;
+            $tipoDocumento = $fattura['tipoDocumento'] ?? 'Fattura';
+            
+            if (!$numeroFattura || !$dataFattura) {
+                \Log::warning('Documento senza numero o data', [
+                    'id_fattura' => $fattura['idFattura'] ?? 'N/A',
+                    'numero_fattura' => $numeroFattura,
+                    'data_fattura' => $dataFattura,
+                    'tipo_documento' => $tipoDocumento,
+                    'session_id' => $session->id_sessione,
+                ]);
+                return;
+            }
+
+            // Determina il tipo di documento
+            $documentType = ($tipoDocumento === 'Nota di credito') ? 'TD04' : 'TD01';
+
+            // Verifica se il documento esiste già
+            $documentoEsistente = Invoice::where('invoice_number', $numeroFattura)
+                ->where('issue_date', $dataFattura)
+                ->where('client_id', $cliente->id)
+                ->where('company_id', $company->id)
+                ->where('document_type', $documentType)
+                ->first();
+
+            if ($documentoEsistente) {
+                \Log::info('Documento già esistente', [
+                    'numero_fattura' => $numeroFattura,
+                    'data_fattura' => $dataFattura,
+                    'tipo_documento' => $tipoDocumento,
+                    'document_type' => $documentType,
+                    'cliente_id' => $cliente->id,
+                    'company_id' => $company->id,
+                ]);
+                return;
+            }
+
+            // Trova o crea la numerazione "Standard" per questo cliente
+            $numbering = InvoiceNumbering::where('company_id', $company->id)
+                ->where('type', 'standard')
+                ->first();
+
+            if (!$numbering) {
+                // Crea una numerazione standard se non esiste
+                $numbering = InvoiceNumbering::create([
+                    'company_id' => $company->id,
+                    'type' => 'standard',
+                    'name' => 'Standard',
+                    'current_number' => 0,
+                    'last_invoice_year' => date('Y'),
+                ]);
+            }
+
+            // Converti gli importi da stringa a decimal
+            $imponibile = $this->convertiImporto($fattura['imponibile'] ?? '0');
+            $imposta = $this->convertiImporto($fattura['imposta'] ?? '0');
+            $totale = $imponibile + $imposta;
+
+            // Converti lo stato SDI
+            $fileDownload = $fattura['fileDownload'] ?? [];
+            $sdiStatus = $this->convertiStatoSdi($fileDownload['statoFile'] ?? '');
+
+            // Crea la fattura o nota di credito
+            $invoice = Invoice::create([
+                'company_id' => $company->id,
+                'client_id' => $cliente->id,
+                'numbering_id' => $numbering->id,
+                'invoice_number' => $numeroFattura,
+                'issue_date' => $dataFattura,
+                'document_type' => $documentType,
+                'data_accoglienza_file' => $fattura['dataAccoglienzaFile'] ?? null,
+                'fiscal_year' => date('Y', strtotime($dataFattura)),
+                'withholding_tax' => false,
+                'inps_contribution' => false,
+                'payment_method_id' => null, // Da definire in base alle esigenze
+                'subtotal' => $imponibile,
+                'vat' => $imposta,
+                'total' => $totale,
+                'global_discount' => 0,
+                'header_notes' => null,
+                'footer_notes' => null,
+                'save_notes_for_future' => false,
+                'sdi_uuid' => null,
+                'sdi_id_invio' => $fileDownload['idInvio'] ?? null,
+                'sdi_status' => $sdiStatus,
+                'sdi_error' => null,
+                'sdi_error_description' => null,
+                'sdi_sent_at' => null,
+                'sdi_received_at' => isset($fattura['dataConsegna']) && $fattura['dataConsegna'] ? \Carbon\Carbon::createFromFormat('d/m/Y', $fattura['dataConsegna']) : null,
+                'sdi_attempt' => 1,
+                'imported_from_ae' => true,
+            ]);
+
+            // Per le note di credito non creiamo payment schedules (sono generalmente compensate)
+            if ($documentType !== 'TD04') {
+                // Crea il payment schedule (100% dell'importo alla data di emissione)
+                $invoice->paymentSchedules()->create([
+                    'due_date' => $dataFattura,
+                    'amount' => $totale,
+                    'type' => 'amount',
+                    'percent' => null,
+                ]);
+
+                // Crea il pagamento (100% dell'importo alla data di emissione)
+                $invoice->payments()->create([
+                    'amount' => $totale,
+                    'payment_date' => $dataFattura,
+                    'method' => 'imported_from_ae',
+                    'note' => 'Pagamento importato da AE',
+                ]);
+            }
+
+            // Aggiorna la numerazione se current_number era 0 (prima fattura del cliente)
+            if ($numbering->current_number == 1) {
+                // Trova l'ultimo documento importato per questo cliente (fatture o note di credito)
+                $ultimoDocumentoImportato = Invoice::where('client_id', $cliente->id)
+                    ->where('company_id', $company->id)
+                    ->where('imported_from_ae', true)
+                    ->where('document_type', $documentType) // Filtra per tipo di documento
+                    ->orderBy('issue_date', 'desc')
+                    ->orderBy('invoice_number', 'desc')
+                    ->first();
+
+                if ($ultimoDocumentoImportato) {
+                    $numeroUltimoDocumento = $ultimoDocumentoImportato->invoice_number;
+                    $annoUltimoDocumento = $ultimoDocumentoImportato->issue_date->year;
+                    
+                    // Verifica se il numero è un intero
+                    if (is_numeric($numeroUltimoDocumento) && ctype_digit($numeroUltimoDocumento)) {
+                        $numbering->update([
+                            'current_number' => (int)$numeroUltimoDocumento,
+                            'last_invoice_year' => $annoUltimoDocumento,
+                        ]);
+                        
+                        \Log::info('Numerazione aggiornata basandosi sull\'ultimo documento importato', [
+                            'cliente_id' => $cliente->id,
+                            'numero_ultimo_documento' => $numeroUltimoDocumento,
+                            'anno_ultimo_documento' => $annoUltimoDocumento,
+                            'tipo_documento' => $tipoDocumento,
+                            'document_type' => $documentType,
+                            'current_number' => $numeroUltimoDocumento,
+                            'last_invoice_year' => $annoUltimoDocumento,
+                        ]);
+                    } else {
+                        // Se il numero non è un intero, usa il documento corrente
+                        $year = date('Y', strtotime($dataFattura));
+                        if (is_numeric($numeroFattura) && ctype_digit($numeroFattura)) {
+                            $numbering->update([
+                                'current_number' => (int)$numeroFattura,
+                                'last_invoice_year' => $year,
+                            ]);
+                            
+                            \Log::info('Numerazione aggiornata con documento corrente', [
+                                'cliente_id' => $cliente->id,
+                                'numero_documento' => $numeroFattura,
+                                'anno_documento' => $year,
+                                'tipo_documento' => $tipoDocumento,
+                                'document_type' => $documentType,
+                                'current_number' => $numeroFattura,
+                                'last_invoice_year' => $year,
+                            ]);
+                        }
+                    }
+                } else {
+                    // Se non ci sono documenti importati, usa il documento corrente
+                    $year = date('Y', strtotime($dataFattura));
+                    if (is_numeric($numeroFattura) && ctype_digit($numeroFattura)) {
+                        $numbering->update([
+                            'current_number' => (int)$numeroFattura,
+                            'last_invoice_year' => $year,
+                        ]);
+                        
+                        \Log::info('Numerazione aggiornata con primo documento importato', [
+                            'cliente_id' => $cliente->id,
+                            'numero_documento' => $numeroFattura,
+                            'anno_documento' => $year,
+                            'tipo_documento' => $tipoDocumento,
+                            'document_type' => $documentType,
+                            'current_number' => $numeroFattura,
+                            'last_invoice_year' => $year,
+                        ]);
+                    }
+                }
+            }
+
+            \Log::info('Documento salvato', [
+                'numero_documento' => $numeroFattura,
+                'data_documento' => $dataFattura,
+                'tipo_documento' => $tipoDocumento,
+                'document_type' => $documentType,
+                'cliente_id' => $cliente->id,
+                'company_id' => $company->id,
+                'invoice_id' => $invoice->id,
+                'totale' => $totale,
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Errore salvataggio documento', [
+                'numero_documento' => $fattura['numeroFattura'] ?? 'N/A',
+                'data_documento' => $fattura['dataFattura'] ?? 'N/A',
+                'tipo_documento' => $fattura['tipoDocumento'] ?? 'N/A',
+                'cliente_id' => $cliente->id,
+                'company_id' => $session->user->currentCompany->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Converte un importo da stringa a decimal
+     */
+    private function convertiImporto(string $importo): float
+    {
+        // Rimuovi il segno + e le virgole, sostituisci la virgola con il punto
+        $importo = str_replace(['+', ','], ['', '.'], $importo);
+        return (float) $importo;
+    }
+
+    /**
+     * Converte lo stato SDI da italiano a inglese
+     */
+    private function convertiStatoSdi(string $stato): string
+    {
+        return match($stato) {
+            'Consegnata' => 'delivered',
+            'Inviata' => 'sent',
+            'Errore' => 'error',
+            'In attesa' => 'pending',
+            default => 'unknown',
+        };
     }
 }

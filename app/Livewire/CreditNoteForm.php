@@ -25,7 +25,7 @@ use Illuminate\Http\File;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 
-class InvoiceForm extends Component
+class CreditNoteForm extends Component
 {
     public $company;
     public $clients = [];
@@ -51,12 +51,9 @@ class InvoiceForm extends Component
     public $ddt_number;
     public $ddt_date;
 
-    public string $documentType = 'TD01';   // TD01, TD24, TD25 …
+    public string $documentType = 'TD04';   // TD04 per note di credito
     public array  $documentTypes = [
-        'TD01' => 'Fattura immediata',
-        'TD01_ACC' => 'Fattura accompagnatoria', // user-friendly, poi mappi sotto
-        'TD24' => 'Fattura differita (beni)',
-        'TD25' => 'Fattura differita (servizi)',
+        'TD04' => 'Nota di credito',
     ];
     
 
@@ -121,17 +118,21 @@ class InvoiceForm extends Component
 
     public $templateHtml = '';
 
+    // Fattura originale per nota di credito
+    public $originalInvoiceId = null;
+    public $originalInvoiceSearch = '';
+    public $originalInvoiceSuggestions = [];
+
     protected $rules = [
         'selectedClientId' => 'required|exists:clients,id',
         'invoiceDate' => 'required|date',
         'selectedNumberingId' => 'required|exists:invoice_numberings,id',
+        'originalInvoiceId' => 'nullable|exists:invoices,id',
         'items.*.name' => 'required|string',
         'items.*.quantity' => 'required|numeric|min:0.01',
         'items.*.unit_price' => 'required|numeric|min:0',
         'items.*.vat_rate' => 'required|numeric|min:0',
-        'documentType' => 'required|in:TD01,TD01_ACC,TD24,TD25',
-        'ddt_number' => 'exclude_unless:documentType,TD24,TD25|required|string',
-        'ddt_date'   => 'exclude_unless:documentType,TD24,TD25|required|date',    
+        'documentType' => 'required|in:TD04',
     ];
 
     public function mount()
@@ -170,7 +171,7 @@ class InvoiceForm extends Component
         }
 
         // Recupera ultima numerazione usata, oppure la prima disponibile
-        $lastInvoice = $this->company->invoices()->latest('issue_date')->first();
+        $lastInvoice = $this->company->invoices()->where('document_type', 'TD04')->latest('issue_date')->first();
         $defaultNumberingId = $lastInvoice?->numbering_id ?? $this->numberings->first()?->id;
 
         $this->selectedNumberingId = $defaultNumberingId;
@@ -186,11 +187,11 @@ class InvoiceForm extends Component
 
     private function createDefaultNumbering()
     {
-        // Trova il primo template disponibile per le fatture
-        $template = InvoiceTemplate::where('type', 'invoice')->first();
+        // Trova il primo template disponibile per le note di credito
+        $template = InvoiceTemplate::where('type', 'credit')->first();
         
         if (!$template) {
-            // Se non esiste un template per fatture, usa il primo disponibile
+            // Se non esiste un template per note di credito, usa il primo disponibile
             $template = InvoiceTemplate::first();
         }
 
@@ -200,7 +201,7 @@ class InvoiceForm extends Component
             'type' => 'standard',
             'name' => 'Standard',
             'prefix' => '',
-            'template_invoice_id' => $template?->id,
+            'template_credit_id' => $template?->id,
             'current_number_invoice' => 1,
             'current_number_autoinvoice' => 1,
             'current_number_credit' => 1,
@@ -238,7 +239,7 @@ class InvoiceForm extends Component
     public function updatedPayments($val, $key)
     {
         // quando cambia qualsiasi payments.*.value o payments.*.type
-        // ricalcola l’ultima rata
+        // ricalcola l'ultima rata
         $this->recalcLast();
     }
 
@@ -266,7 +267,7 @@ class InvoiceForm extends Component
 
     public function updatedPaymentsDate($val, $key)
     {
-        // se l’utente modifica a mano la data, imposta term = 'custom'
+        // se l'utente modifica a mano la data, imposta term = 'custom'
         if (str($key)->endsWith('.date')) {
             [$_, $i, $_] = explode('.', $key);
             $this->payments[$i]['term'] = 'custom';
@@ -349,7 +350,7 @@ class InvoiceForm extends Component
         DB::beginTransaction();
 
         try {
-            // 1) Creo la fattura
+            // 1) Creo la nota di credito
             $invoice = Invoice::create([
                 'company_id'           => $this->company->id,
                 'client_id'            => $client->id,
@@ -366,6 +367,7 @@ class InvoiceForm extends Component
                 'global_discount'      => $this->globalDiscount,
                 'header_notes'         => $this->headerNotes,
                 'document_type'        => $this->documentType,
+                'original_invoice_id'  => $this->originalInvoiceId,
                 'footer_notes'         => $this->footerNotes,
                 'save_notes_for_future'=> $this->saveNotesForFuture,
                 'sdi_sent_at'   => null,
@@ -385,8 +387,8 @@ class InvoiceForm extends Component
                 ]);
             }
 
-            // 3) Aggiorno il progressivo per le fatture
-            $numbering->increment('current_number_invoice');
+            // 3) Aggiorno il progressivo per le note di credito
+            $numbering->increment('current_number_credit');
 
             // 4) Salvo le note se richiesto
             if ($this->saveNotesForFuture) {
@@ -395,31 +397,20 @@ class InvoiceForm extends Component
                 $numbering->save();
             }
 
-            foreach ($this->payments as $p) {
-                $raw    = floatval($p['value']);
-                $amount = ($p['type'] ?? 'amount') === 'percent'
-                    ? round($invoice->total * $raw / 100, 2)
-                    : $raw;
-            
-                $invoice->paymentSchedules()->create([
-                    'due_date' => $p['date'],
-                    'amount'   => $amount,
-                    'type'     => $p['type'],
-                    'percent'  => $p['type'] === 'percent' ? $raw : null,
-                ]);
-            }
+            // Per le note di credito non creiamo scadenze di pagamento
+            // Le note di credito sono generalmente pagate immediatamente o compensate
 
             // 5) Genero XML, invio a SDI, PDF, S3, email…
             SendInvoiceToSdiJob::dispatch($invoice->id); 
 
             // Generazione PDF e caricamento S3 (resta invariato)
-            $renderer = new InvoiceRenderer($invoice, $this->items, $this->payments, $this->splitPayments, $this->dueDate);
+            $renderer = new InvoiceRenderer($invoice, $this->items, [], false, null);
             $pdf = $renderer->renderPdf();
 
             $companySlug   = $this->company->slug;
             $year          = Carbon::parse($this->invoiceDate)->format('Y');
             $invoiceNumber = $this->invoicePrefix . $this->invoiceNumber;
-            $path          = "clienti/{$companySlug}/fatture/{$this->selectedNumberingId}/{$year}/{$invoice->invoice_number}.pdf";
+            $path          = "clienti/{$companySlug}/note-di-credito/{$this->selectedNumberingId}/{$year}/{$invoice->invoice_number}.pdf";
 
             $encrypted = encrypt($pdf);
             Storage::disk('s3')->put($path, $encrypted);
@@ -437,7 +428,7 @@ class InvoiceForm extends Component
                 foreach ($recipients as $email) {
                     \Mail::to($email)
                         ->send(new \App\Mail\InvoiceMail($invoice, $this->company));
-                    Log::info("📤 Fattura inviata a: $email");
+                    Log::info("📤 Nota di credito inviata a: $email");
                 }
             } else {
                 Log::info("📭 Nessun contatto configurato per il cliente {$client->name}");
@@ -445,22 +436,22 @@ class InvoiceForm extends Component
 
             DB::commit();
 
-            session()->flash('success', 'Fattura salvata con successo.');
-            return redirect()->route('fatture.lista');
+            session()->flash('success', 'Nota di credito salvata con successo.');
+            return redirect()->route('note-di-credito.lista');
         }
         catch (\Throwable $e) {
             DB::rollBack();
 
             // Ripristino contatore se già incrementato
-            if (isset($numbering) && $numbering->wasChanged('current_number_invoice')) {
-                $numbering->decrement('current_number_invoice');
+            if (isset($numbering) && $numbering->wasChanged('current_number_credit')) {
+                $numbering->decrement('current_number_credit');
             }
-            // Elimino la fattura “orfana”
+            // Elimino la nota di credito "orfana"
             if (isset($invoice) && $invoice->exists) {
                 $invoice->delete();
             }
 
-            Log::error('Errore salvataggio fattura', ['exception' => $e]);
+            Log::error('Errore salvataggio nota di credito', ['exception' => $e]);
             $this->addError('save', 'Errore durante il salvataggio: ' . $e->getMessage());
         }
     }
@@ -500,6 +491,77 @@ class InvoiceForm extends Component
         }
     }
 
+    public $showOriginalInvoiceDropdown = false;
+
+    public function updatedOriginalInvoiceSearch($value)
+    {
+        // Se c'è un cliente selezionato, filtra le fatture di quel cliente
+        if ($this->selectedClientId) {
+            $query = $this->company->invoices()
+                ->where('document_type', '!=', 'TD04') // Escludi note di credito
+                ->where('client_id', $this->selectedClientId)
+                ->with('client')
+                ->orderBy('issue_date', 'desc');
+
+            // Se c'è un valore di ricerca, filtra per numero fattura
+            if (!empty($value)) {
+                $query->where('invoice_number', 'like', '%' . $value . '%');
+            }
+
+            $this->originalInvoiceSuggestions = $query->limit(10)
+                ->get()
+                ->map(function ($invoice) {
+                    return [
+                        'id' => $invoice->id,
+                        'text' => "{$invoice->invoice_number} ({$invoice->issue_date->format('d/m/Y')}) - €{$invoice->total}"
+                    ];
+                })
+                ->toArray();
+        } else {
+            $this->originalInvoiceSuggestions = [];
+        }
+    }
+
+    public function showOriginalInvoiceSuggestions()
+    {
+        // Mostra le fatture del cliente selezionato al click
+        $this->showOriginalInvoiceDropdown = true;
+        $this->updatedOriginalInvoiceSearch('');
+    }
+
+    public function hideOriginalInvoiceSuggestions()
+    {
+        $this->showOriginalInvoiceDropdown = false;
+    }
+
+    public function selectOriginalInvoice($id)
+    {
+        $invoice = $this->company->invoices()->with('client')->find($id);
+
+        if ($invoice && $invoice->document_type !== 'TD04') {
+            $this->originalInvoiceId = $invoice->id;
+            $this->originalInvoiceSearch = "{$invoice->invoice_number} ({$invoice->issue_date->format('d/m/Y')}) - €{$invoice->total}";
+            $this->originalInvoiceSuggestions = [];
+            $this->showOriginalInvoiceDropdown = false;
+            
+            // Precompila gli articoli dalla fattura originale
+            $this->items = [];
+            foreach ($invoice->items as $item) {
+                $this->items[] = [
+                    'name' => $item->name,
+                    'description' => $item->description ?? '',
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->unit_price,
+                    'vat_rate' => $item->vat_rate,
+                    'unit_of_measure' => $item->unit_of_measure ?? '',
+                ];
+            }
+            
+            // Ricalcola i totali
+            $this->recalculateTotals();
+        }
+    }
+
     public function addItem()
     {
         $this->items[] = [
@@ -525,20 +587,29 @@ class InvoiceForm extends Component
         $numbering = InvoiceNumbering::find($value);
     
         $this->invoicePrefix = $numbering->prefix ?? '';
-        $this->invoiceNumber = $numbering->current_number_invoice ?? 1;
+        $this->invoiceNumber = $numbering->current_number_credit ?? 1;
     
         $this->headerNotes = $numbering->default_header_notes ?? $this->headerNotes;
         $this->footerNotes = $numbering->default_footer_notes ?? $this->footerNotes;
     
-        // Carica template HTML associato alla numerazione (fattura)
-        if ($numbering->template_invoice_id) {
-            $template = InvoiceTemplate::find($numbering->template_invoice_id);
+        // Carica template HTML associato alla numerazione (nota di credito)
+        if ($numbering->template_credit_id) {
+            $template = InvoiceTemplate::find($numbering->template_credit_id);
             $this->templateHtml = $template?->blade ?? '';
         }
     
         // Imposta metodo di pagamento di default
         $this->selectedPaymentMethodId = $numbering->default_payment_method_id
             ?? ($this->paymentMethods->first()?->id ?? null);
+    }
+
+    public function updatedSelectedClientId($value)
+    {
+        // Quando cambia il cliente, resetta la fattura originale
+        $this->originalInvoiceId = null;
+        $this->originalInvoiceSearch = '';
+        $this->originalInvoiceSuggestions = [];
+        $this->showOriginalInvoiceDropdown = false;
     }
 
     public function updated($propertyName, $value)
@@ -569,7 +640,7 @@ class InvoiceForm extends Component
             $this->updatedPaymentsTerm($value, $propertyName);
         }
     
-        // D) Se cambia la data manualmente, imposta il termine a “custom”
+        // D) Se cambia la data manualmente, imposta il termine a "custom"
         if (Str::startsWith($propertyName, 'payments.') && Str::endsWith($propertyName, '.date')) {
             $this->updatedPaymentsDate($value, $propertyName);
         }
@@ -591,7 +662,7 @@ class InvoiceForm extends Component
         }
         unset($p);
 
-        // forzo l’ultima rata a chiudere al 100%
+        // forzo l'ultima rata a chiudere al 100%
         $this->payments[$n - 1]['value'] = round(100 - $sum, 2);
     }
 
@@ -611,7 +682,7 @@ class InvoiceForm extends Component
         }
         unset($p);
 
-        // forzo l’ultima rata a chiudere al totale
+        // forzo l'ultima rata a chiudere al totale
         $this->payments[$n - 1]['value'] = round($total - $sum, 2);
     }
 
@@ -658,7 +729,7 @@ class InvoiceForm extends Component
     {
         $totals = $this->calculateTotals();
 
-        return view('livewire.invoice-form', [
+        return view('livewire.credit-note-form', [
             'totals' => $totals,
             'company' => $this->company,
         ]);
@@ -666,7 +737,7 @@ class InvoiceForm extends Component
 
     public function getPreviewHtmlProperty(): string
     {
-        // 1) crea l’istanza in memoria
+        // 1) crea l'istanza in memoria
         $invoice = Invoice::make([
             'company_id'           => $this->company->id,
             'client_id'            => $this->selectedClientId,
@@ -683,6 +754,7 @@ class InvoiceForm extends Component
             'global_discount'      => $this->globalDiscount,
             'header_notes'         => $this->headerNotes,
             'document_type'        => $this->documentType,
+            'original_invoice_id'  => $this->originalInvoiceId,
             'footer_notes'         => $this->footerNotes,
             'save_notes_for_future'=> $this->saveNotesForFuture,
             'sdi_sent_at'          => null,
@@ -693,11 +765,19 @@ class InvoiceForm extends Component
         // 2) carica numbering dal DB
         $numbering = InvoiceNumbering::findOrFail($this->selectedNumberingId);
     
-        // 3) “attacca” la relazione al model non-persisted
+        // 3) "attacca" la relazione al model non-persisted
         $invoice->setRelation('numbering', $numbering);
+        
+        // 4) Carica la relazione originalInvoice se presente
+        if ($this->originalInvoiceId) {
+            $originalInvoice = Invoice::find($this->originalInvoiceId);
+            if ($originalInvoice) {
+                $invoice->setRelation('originalInvoice', $originalInvoice);
+            }
+        }
     
        
-        $renderer = new InvoiceRenderer($invoice, $this->items, $this->payments, $this->splitPayments, $this->dueDate);
+        $renderer = new InvoiceRenderer($invoice, $this->items, [], false, null);
     
         return $renderer->renderHtml();
     }
@@ -712,9 +792,9 @@ class InvoiceForm extends Component
         if (count($this->payments) < 2) {
             $this->splitPayments = false;
         } else {
-            // altrimenti ricalcolo l’ultima rata
+            // altrimenti ricalcolo l'ultima rata
             $this->recalcLast();
         }
     }
 
-}
+} 
