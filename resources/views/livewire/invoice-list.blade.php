@@ -162,13 +162,33 @@
                             {{ $invoice->deadline_date ? strtolower($invoice->deadline_date->locale('it')->isoFormat('DD MMM YYYY')) : '–' }}
                         </td>
                         <td class="whitespace-nowrap py-4 px-4 text-right">
-                            <div class="flex justify-end items-center gap-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">                        
+                            <div class="flex justify-end items-center gap-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 relative">                        
                                 
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="0.392857" y="0.392857" width="19.2143" height="19.2143" rx="2.75" stroke="#AD96FF" stroke-width="0.785714"/>
-                                    <path d="M5.74408 10H5.75063M10 10H10.0066M14.2494 10H14.256" stroke="#AD96FF" stroke-width="2.35714" stroke-linecap="round"/>
-                                </svg>
+                                <div class="relative" x-data="{ open: false }">
+                                    <button @click="open = !open" class="p-1 hover:bg-gray-100 rounded">
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <rect x="0.392857" y="0.392857" width="19.2143" height="19.2143" rx="2.75" stroke="#AD96FF" stroke-width="0.785714"/>
+                                            <path d="M5.74408 10H5.75063M10 10H10.0066M14.2494 10H14.256" stroke="#AD96FF" stroke-width="2.35714" stroke-linecap="round"/>
+                                        </svg>
+                                    </button>
                                     
+                                    <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border">
+                                        <div class="py-1">
+                                            <button 
+                                                @click="open = false; $wire.sendInvoiceEmail({{ $invoice->id }})"
+                                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            >
+                                                <div class="flex items-center gap-2">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M2.5 4.5L8 9L13.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <rect x="1" y="3" width="14" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                                                    </svg>
+                                                    Invia via email
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                                 
                             </div>
                         </td>
@@ -183,3 +203,26 @@
     </div>
 
 </div>
+
+<script>
+document.addEventListener('livewire:init', () => {
+    Livewire.on('confirm-send-email', (event) => {
+        const invoiceId = event.invoiceId;
+        
+        Swal.fire({
+            title: 'Conferma invio email',
+            text: 'Sei sicuro di voler inviare la fattura via email?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sì, invia',
+            cancelButtonText: 'Annulla'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                @this.confirmSendEmail(invoiceId);
+            }
+        });
+    });
+});
+</script>

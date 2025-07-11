@@ -29,19 +29,38 @@ class Dashboard extends Component
         ->map(fn($m) => Carbon::create()->month($m)->locale('it')->isoFormat('MMM'))
         ->toArray();
 
-    // 2) Totali mensili Fatture (campo `total` su invoices)
+    // 2) Totali mensili Fatture (campo `total` su invoices) - Note di credito
     $this->invoiceTotals = collect(range(1, 12))
-        ->map(fn($m) => Invoice::where('company_id', $companyId)
+        ->map(fn($m) => 
+            // Fatture ordinarie (escludendo TD04)
+            Invoice::where('company_id', $companyId)
                 ->whereYear('issue_date', $year)
                 ->whereMonth('issue_date', $m)
+                ->whereNotIn('document_type', ['TD04'])
+                ->sum('total')
+            -
+            // Note di credito (TD04)
+            Invoice::where('company_id', $companyId)
+                ->whereYear('issue_date', $year)
+                ->whereMonth('issue_date', $m)
+                ->where('document_type', 'TD04')
                 ->sum('total')
         )
         ->toArray();
 
-    // 2b) Totale annuale fatture
-    $this->invoiceYearTotal = Invoice::where('company_id', $companyId)
-        ->whereYear('issue_date', $year)
-        ->sum('total');
+    // 2b) Totale annuale fatture - Note di credito
+    $this->invoiceYearTotal = 
+        // Fatture ordinarie (escludendo TD04)
+        Invoice::where('company_id', $companyId)
+            ->whereYear('issue_date', $year)
+            ->whereNotIn('document_type', ['TD04'])
+            ->sum('total')
+        -
+        // Note di credito (TD04)
+        Invoice::where('company_id', $companyId)
+            ->whereYear('issue_date', $year)
+            ->where('document_type', 'TD04')
+            ->sum('total');
 
     // 2c) Totale annuale abbonamenti
     $this->subscriptionYearTotal = Subscription::whereHas('client', fn($q) =>

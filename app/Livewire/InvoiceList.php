@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Invoice;
+use App\Jobs\SendInvoiceEmailJob;
 
 class InvoiceList extends Component
 {
@@ -34,6 +35,28 @@ class InvoiceList extends Component
         $this->search = '';
         $this->paymentStatusFilter = null;
         $this->resetPage();
+    }
+
+    public function sendInvoiceEmail($invoiceId)
+    {
+        $this->dispatch('confirm-send-email', invoiceId: $invoiceId);
+    }
+
+    public function confirmSendEmail($invoiceId)
+    {
+        try {
+            SendInvoiceEmailJob::dispatch($invoiceId);
+            $this->dispatch('show-success', message: 'Email in coda per l\'invio');
+        } catch (\Exception $e) {
+            $this->dispatch('show-error', message: 'Errore nell\'invio dell\'email: ' . $e->getMessage());
+        }
+
+        \Log::info('Invio email fattura', [
+            'invoice_id' => $invoiceId,
+            'user_id' => auth()->id(),
+            'company_id' => session('current_company_id'),
+            'timestamp' => now()->toDateTimeString(),
+        ]);
     }
 
     public function mount()
