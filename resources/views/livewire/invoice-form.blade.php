@@ -250,9 +250,13 @@
         <textarea wire:model.live="footerNotes" class="w-full border rounded px-3 py-2"></textarea>
     </div>
 
-    <div class="flex items-center space-x-2">
-        <input type="checkbox" wire:model="saveNotesForFuture" id="save_notes" class="rounded border-gray-300">
-        <label for="save_notes" class="text-sm">Salva l'intestazione e le note per le prossime fatture</label>
+    <div class="mt-4">
+        <label class="block font-semibold mb-1">Testo introduttivo email (verrà inserito all'inizio della mail di invio fattura)</label>
+        <textarea wire:model.defer="contactInfo" rows="3" class="w-full border rounded px-3 py-2" placeholder="Inserisci qui il testo che vuoi venga mostrato all'inizio della mail"></textarea>
+        <div class="mt-2 flex items-center">
+            <input type="checkbox" wire:model="saveNotesForFuture" id="saveNotesForFuture" class="mr-2">
+            <label for="saveNotesForFuture" class="text-sm">Salva come default per questa numerazione</label>
+        </div>
     </div>
 
     @if ($errors->any())

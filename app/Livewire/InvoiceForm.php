@@ -42,6 +42,7 @@ class InvoiceForm extends Component
     public $footerNotes;
     public $saveNotesForFuture = false;
     public $globalDiscount = 0.00;
+    public $contactInfo;
 
     public bool $splitPayments = false;
     public string $dueOption = 'on_receipt'; // 'on_receipt'|'15'|'30'|'custom'
@@ -132,6 +133,7 @@ class InvoiceForm extends Component
         'documentType' => 'required|in:TD01,TD01_ACC,TD24,TD25',
         'ddt_number' => 'exclude_unless:documentType,TD24,TD25|required|string',
         'ddt_date'   => 'exclude_unless:documentType,TD24,TD25|required|date',    
+        'contactInfo' => 'nullable|string',
     ];
 
     public function mount()
@@ -163,6 +165,7 @@ class InvoiceForm extends Component
         $this->paymentMethods = $this->company->paymentMethods()->get();
         $this->numberings     = $this->company->invoiceNumberings()->get();
         $this->invoiceDate = today()->toDateString();
+        $this->contactInfo = $this->numberings->first()?->contact_info ?? '';
 
         // Se non esistono numerazioni, crea una numerazione standard
         if ($this->numberings->isEmpty()) {
@@ -368,6 +371,7 @@ class InvoiceForm extends Component
                 'document_type'        => $this->documentType,
                 'footer_notes'         => $this->footerNotes,
                 'save_notes_for_future'=> $this->saveNotesForFuture,
+                'contact_info'         => $this->contactInfo,
                 'sdi_sent_at'   => null,
                 'sdi_received_at' => null,
                 'sdi_attempt'   => 1,
@@ -392,6 +396,7 @@ class InvoiceForm extends Component
             if ($this->saveNotesForFuture) {
                 $numbering->default_header_notes = $this->headerNotes;
                 $numbering->default_footer_notes = $this->footerNotes;
+                $numbering->contact_info = $this->contactInfo;
                 $numbering->save();
             }
 
@@ -529,6 +534,7 @@ class InvoiceForm extends Component
     
         $this->headerNotes = $numbering->default_header_notes ?? $this->headerNotes;
         $this->footerNotes = $numbering->default_footer_notes ?? $this->footerNotes;
+        $this->contactInfo = $numbering->contact_info ?? '';
     
         // Carica template HTML associato alla numerazione (fattura)
         if ($numbering->template_invoice_id) {
@@ -685,6 +691,7 @@ class InvoiceForm extends Component
             'document_type'        => $this->documentType,
             'footer_notes'         => $this->footerNotes,
             'save_notes_for_future'=> $this->saveNotesForFuture,
+            'contact_info'         => $this->contactInfo,
             'sdi_sent_at'          => null,
             'sdi_received_at'      => null,
             'sdi_attempt'          => 1,

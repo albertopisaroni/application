@@ -342,6 +342,9 @@ padding-bottom: 20px;
 <p style="margin-top: 0;margin-right: 0;margin-bottom: 20px;margin-left: 0;line-height:32px;font-size:24px;font-weight: 400;color: #181840;">
 			Hai una nuova fattura da visualizzare.
 </p>
+@php
+    $intro = $invoice->contact_info ?? $invoice->numbering->contact_info ?? null;
+@endphp
 <p
 	style="
 		margin-right: 0;
@@ -356,7 +359,7 @@ margin-bottom: 8px;
   
   
   
-  Se hai domande o suggerimenti, siamo sempre qui per aiutarti. Puoi contattarci all'indirizzo <a style="text-decoration:none;color:#181840;" href="mailto:support@whistlesblow.it" rel="noopener noreferrer">support@whistlesblow.it</a> o tramite i recapiti sul sito.</p>
+  {!! $intro !!}
   
   
   

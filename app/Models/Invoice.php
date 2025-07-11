@@ -18,7 +18,7 @@ class Invoice extends Model
     }
 
     protected $fillable = [
-        'company_id', 'client_id', 'numbering_id', 'invoice_number', 'issue_date', 'document_type',
+        'company_id', 'client_id', 'numbering_id', 'invoice_number', 'issue_date', 'document_type', 'contact_info',
         'original_invoice_id', 'data_accoglienza_file', 'fiscal_year', 'withholding_tax', 'inps_contribution', 'payment_methods_id',
         'subtotal', 'vat', 'total', 'global_discount', 'header_notes', 'footer_notes',
         'save_notes_for_future', 'pdf_path', 'sdi_uuid', 'sdi_id_invio', 'sdi_status', 'payment_method_id',
