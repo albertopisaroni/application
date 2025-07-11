@@ -174,7 +174,7 @@ class ContactController extends Controller
 
     public function createLookup()
     {
-        return view('contatti.clienti.nuovo.lookup');
+        return view('contatti.clienti.lookup');
     }
 
     public function hide(Client $client)
