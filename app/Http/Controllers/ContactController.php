@@ -62,8 +62,6 @@ class ContactController extends Controller
             ],
             'sdi' => 'nullable|string|max:50',
             'pec' => 'nullable|email|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:30',
         ]);
     
         // Riattiva cliente esistente (hidden = true) oppure crea nuovo
@@ -176,7 +174,7 @@ class ContactController extends Controller
 
     public function createLookup()
     {
-        return view('app.contatti.clienti.lookup');
+        return view('contatti.clienti.nuovo.lookup');
     }
 
     public function hide(Client $client)

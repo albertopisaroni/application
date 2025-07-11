@@ -172,7 +172,7 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
                 Route::get('/{client}/edit', [ContactController::class, 'edit'])->name('contatti.clienti.edit'); // Modifica cliente
                 Route::put('/{client}', [ContactController::class, 'update'])->name('contatti.clienti.update'); // Aggiorna cliente
                 Route::get('/create/lookup', [ContactController::class, 'createLookup'])->name('contatti.clienti.nuovo.lookup'); // Aggiungi cliente
-                Route::post('/create/lookup', [ContactController::class, 'createLookupPost'])->name('contatti.clienti.nuovo.lookup');
+                Route::post('/create/lookup', [ContactController::class, 'createLookupPost']);
 
 
 
