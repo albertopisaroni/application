@@ -153,11 +153,12 @@ class ClientList extends Component
 
         $fields = ['name', 'domain', 'address', 'cap', 'city', 'province', 'country', 'piva', 'sdi', 'pec', 'stripe_customer_id', 'stripe_account_id'];
 
-        // Update target client with selected data
+        // Prepare update data
+        $updateData = [];
         foreach ($fields as $field) {
             if (isset($this->selectedMergeData[$field])) {
                 $value = $this->selectedMergeData[$field] === 'source' ? $sourceClient->$field : $targetClient->$field;
-                $targetClient->$field = $value;
+                $updateData[$field] = $value;
             }
         }
 
@@ -165,20 +166,21 @@ class ClientList extends Component
         if (isset($this->selectedMergeData['stripe_customer_id'])) {
             if ($this->selectedMergeData['stripe_customer_id'] === 'source') {
                 // If we're using source's stripe_customer_id, also copy its stripe_account_id
-                $targetClient->stripe_account_id = $sourceClient->stripe_account_id;
+                $updateData['stripe_account_id'] = $sourceClient->stripe_account_id;
             } else {
                 // If we're using target's stripe_customer_id, keep its stripe_account_id
-                $targetClient->stripe_account_id = $targetClient->stripe_account_id;
+                $updateData['stripe_account_id'] = $targetClient->stripe_account_id;
             }
         }
 
-        $targetClient->save();
+        // First, hide the source client to avoid conflicts
+        $sourceClient->update(['hidden' => true]);
+
+        // Now update the target client
+        $targetClient->update($updateData);
 
         // Move all related data from source to target
         $this->moveRelatedData($sourceClient->id, $targetClient->id);
-
-        // Hide the source client
-        $sourceClient->update(['hidden' => true]);
 
         $this->mergeModalVisible = false;
         $this->reset(['sourceClientId', 'targetClientId', 'mergeSearch', 'suggestedClients', 'selectedMergeData']);
