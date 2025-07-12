@@ -13,17 +13,7 @@ class ContactController extends Controller
 {
     public function index()
     {
-        $companyId = session('current_company_id');
-
-        if (! $companyId) {
-            abort(403, 'Nessuna company selezionata');
-        }
-
-        $clients = Client::where('company_id', $companyId)
-                         ->where('hidden', false)
-                         ->get();
-
-        return view('contatti.clienti.lista', compact('clients'));
+        return view('contatti.clienti.lista');
     }
 
     
@@ -83,7 +73,6 @@ class ContactController extends Controller
 
     public function show(Client $client)
     {
-        $client->load('contacts');
         return view('contatti.clienti.show', compact('client'));
     }
 
