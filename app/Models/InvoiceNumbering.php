@@ -42,16 +42,16 @@ class InvoiceNumbering extends Model
     
         // Se l'anno dell'ultima fattura differisce dall'anno corrente, resetta il progressivo.
         if ($this->last_invoice_year != $invoiceYear) {
-            $this->current_number = 0;
+            $this->current_number_invoice = 0;
             $this->last_invoice_year = $invoiceYear;
         }
     
-        $this->current_number++;
+        $this->current_number_invoice++;
         $this->save();
     
         return $this->type === 'custom' && !empty($this->prefix)
-            ? $this->prefix . $this->current_number
-            : (string) $this->current_number;
+            ? $this->prefix . $this->current_number_invoice
+            : (string) $this->current_number_invoice;
     }
 
     public function getNextNumber()
@@ -65,8 +65,8 @@ class InvoiceNumbering extends Model
                 : '1';
         }
 
-        // Altrimenti, restituisci current_number + 1 senza modificare il DB.
-        $next = $this->current_number + 1;
+        // Altrimenti, restituisci current_number_invoice + 1 senza modificare il DB.
+        $next = $this->current_number_invoice + 1;
         return $this->type === 'custom' && !empty($this->prefix)
             ? $this->prefix . $next
             : (string) $next;
@@ -79,7 +79,7 @@ class InvoiceNumbering extends Model
         if ($this->last_invoice_year != $currentYear) {
             return 1;
         }
-        return $this->current_number + 1;
+        return $this->current_number_invoice + 1;
     }
 
     public function defaultPaymentMethod()

@@ -474,7 +474,7 @@ class FiscoapiPostLogin extends Command
                     'company_id' => $company->id,
                     'type' => 'standard',
                     'name' => 'Standard',
-                    'current_number' => 0,
+                    'current_number_invoice' => 0,
                     'last_invoice_year' => date('Y'),
                 ]);
             }
@@ -539,7 +539,7 @@ class FiscoapiPostLogin extends Command
             }
 
             // Aggiorna la numerazione se current_number era 0 (prima fattura del cliente)
-            if ($numbering->current_number == 1) {
+            if ($numbering->current_number_invoice == 1) {
                 // Trova l'ultimo documento importato per questo cliente (fatture o note di credito)
                 $ultimoDocumentoImportato = Invoice::where('client_id', $cliente->id)
                     ->where('company_id', $company->id)
@@ -556,7 +556,7 @@ class FiscoapiPostLogin extends Command
                     // Verifica se il numero è un intero
                     if (is_numeric($numeroUltimoDocumento) && ctype_digit($numeroUltimoDocumento)) {
                         $numbering->update([
-                            'current_number' => (int)$numeroUltimoDocumento,
+                            'current_number_invoice' => (int)$numeroUltimoDocumento,
                             'last_invoice_year' => $annoUltimoDocumento,
                         ]);
                         
@@ -566,7 +566,7 @@ class FiscoapiPostLogin extends Command
                             'anno_ultimo_documento' => $annoUltimoDocumento,
                             'tipo_documento' => $tipoDocumento,
                             'document_type' => $documentType,
-                            'current_number' => $numeroUltimoDocumento,
+                            'current_number_invoice' => $numeroUltimoDocumento,
                             'last_invoice_year' => $annoUltimoDocumento,
                         ]);
                     } else {
@@ -574,7 +574,7 @@ class FiscoapiPostLogin extends Command
                         $year = date('Y', strtotime($dataFattura));
                         if (is_numeric($numeroFattura) && ctype_digit($numeroFattura)) {
                             $numbering->update([
-                                'current_number' => (int)$numeroFattura,
+                                'current_number_invoice' => (int)$numeroFattura,
                                 'last_invoice_year' => $year,
                             ]);
                             
@@ -584,7 +584,7 @@ class FiscoapiPostLogin extends Command
                                 'anno_documento' => $year,
                                 'tipo_documento' => $tipoDocumento,
                                 'document_type' => $documentType,
-                                'current_number' => $numeroFattura,
+                                'current_number_invoice' => $numeroFattura,
                                 'last_invoice_year' => $year,
                             ]);
                         }
@@ -594,7 +594,7 @@ class FiscoapiPostLogin extends Command
                     $year = date('Y', strtotime($dataFattura));
                     if (is_numeric($numeroFattura) && ctype_digit($numeroFattura)) {
                         $numbering->update([
-                            'current_number' => (int)$numeroFattura,
+                            'current_number_invoice' => (int)$numeroFattura,
                             'last_invoice_year' => $year,
                         ]);
                         
@@ -604,7 +604,7 @@ class FiscoapiPostLogin extends Command
                             'anno_documento' => $year,
                             'tipo_documento' => $tipoDocumento,
                             'document_type' => $documentType,
-                            'current_number' => $numeroFattura,
+                            'current_number_invoice' => $numeroFattura,
                             'last_invoice_year' => $year,
                         ]);
                     }

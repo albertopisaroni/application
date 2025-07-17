@@ -311,7 +311,7 @@ public function nuovaPiva(NuovaPivaRequest $request)
             }
 
             // INCREMENTA PROGRESSIVO
-            $num->increment('current_number');
+            $num->increment('current_number_invoice');
 
             // SCADENZE
             $schedules = $data['scadenze'] ?? [];
