@@ -25,6 +25,7 @@
         "stripe/stripe-php": "^17.1",
         "truelayer/client": "^3.1",
         "twilio/sdk": "^8.5",
+        "wachey/api": "^1.2",
         "webklex/laravel-imap": "^6.1"
     },
     "require-dev": {

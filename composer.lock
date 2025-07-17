@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d4e856661fe69b939571c00568ba7ec3",
+    "content-hash": "f97e4330e642f3cb4df3a1f229dfcca9",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -9483,6 +9483,39 @@
                 }
             ],
             "time": "2024-11-21T01:49:47+00:00"
+        },
+        {
+            "name": "wachey/api",
+            "version": "1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/wachey-com/wachey-php.git",
+                "reference": "88f97211f3f4b85b681dd810f25f4bc02d3cbc5c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/wachey-com/wachey-php/zipball/88f97211f3f4b85b681dd810f25f4bc02d3cbc5c",
+                "reference": "88f97211f3f4b85b681dd810f25f4bc02d3cbc5c",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Wachey\\Api\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "authors": [
+                {
+                    "name": "Alberto Pisaroni"
+                }
+            ],
+            "description": "Packet for a simple management of the API request for our monitoring platform",
+            "support": {
+                "issues": "https://github.com/wachey-com/wachey-php/issues",
+                "source": "https://github.com/wachey-com/wachey-php/tree/1.2.0"
+            },
+            "time": "2025-05-06T16:29:28+00:00"
         },
         {
             "name": "web-token/jwt-library",

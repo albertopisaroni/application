@@ -22,6 +22,15 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->report(function (\Throwable $e) {
+            \Wachey\Api\Report::error(
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine(),
+                request()->ip(),
+                optional(\Illuminate\Support\Facades\Auth::user())->email
+            );
+        });
         $exceptions->render(function (NotFoundHttpException $e, \Illuminate\Http\Request $request) {
             if (str_starts_with($request->getHost(), 'api.')) {
                 return response()->json([

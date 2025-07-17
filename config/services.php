@@ -18,6 +18,11 @@ return [
         'token' => env('POSTMARK_TOKEN'),
     ],
 
+    'wachey' => [
+        'key'      => env('WACHEY_API_KEY'),
+        'password' => env('WACHEY_PASSWORD'),
+    ],
+
     'google' => [
         'places_key' => env('GOOGLE_PLACES_KEY'),
         'client_id' => env('GOOGLE_CLIENT_ID'),
