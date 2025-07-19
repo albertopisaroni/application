@@ -191,11 +191,6 @@ class InvoiceXmlGenerator
         foreach ($invoice->paymentSchedules as $sched) {
             // data di scadenza
             $due = Carbon::parse($sched->due_date);
-            if ($due->lt($invoice->issue_date)) {
-                throw new \Exception(
-                    "Scadenza {$due->toDateString()} deve essere successiva alla data fattura {$invoice->issue_date->toDateString()}."
-                );
-            }
             $dueStr = $due->format('Y-m-d');
         
             // importo già calcolato in fase di salvataggio
@@ -212,6 +207,9 @@ class InvoiceXmlGenerator
                 : '')
             ."</DettaglioPagamento>";
         }
+
+        $companyProvince = $company->legal_province !== null ? "<Provincia>{$company->legal_province}</Provincia>" : "";
+        $clientProvince = $client->province !== null ? "<Provincia>{$client->province}</Provincia>" : "";
 
         // -------------------------
         // 9) ASSEMBLAGGIO FINALE
@@ -254,7 +252,7 @@ class InvoiceXmlGenerator
         <NumeroCivico>{$company->legal_number}</NumeroCivico>
         <CAP>{$company->legal_zip}</CAP>
         <Comune>{$company->legal_city}</Comune>
-        <Provincia>{$company->legal_province}</Provincia>
+        {$companyProvince}
         <Nazione>{$company->legal_country}</Nazione>
       </Sede>
       {$reaXml}
@@ -263,7 +261,7 @@ class InvoiceXmlGenerator
     <CessionarioCommittente>
       <DatiAnagrafici>
         <IdFiscaleIVA>
-          <IdPaese>IT</IdPaese>
+          <IdPaese>{$client->country}</IdPaese>
           <IdCodice>{$client->piva}</IdCodice>
         </IdFiscaleIVA>
         <Anagrafica>
@@ -274,7 +272,7 @@ class InvoiceXmlGenerator
         <Indirizzo>{$client->address}</Indirizzo>
         <CAP>{$client->cap}</CAP>
         <Comune>{$client->city}</Comune>
-        <Provincia>{$client->province}</Provincia>
+        {$clientProvince}
         <Nazione>{$client->country}</Nazione>
       </Sede>
     </CessionarioCommittente>

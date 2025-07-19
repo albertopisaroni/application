@@ -43,7 +43,7 @@ class FattureController extends Controller
      * @bodyParam cliente.address string required Indirizzo del cliente.  
      * @bodyParam cliente.cap string required CAP del cliente.  
      * @bodyParam cliente.city string required Città del cliente.  
-     * @bodyParam cliente.province string required Provincia del cliente.  
+     * @bodyParam cliente.province string Provincia del cliente.  
      * @bodyParam cliente.country string default: IT Paese del cliente.  
      * @bodyParam cliente.sdi string nullable Codice SDI del cliente.  
      * @bodyParam cliente.pec string nullable PEC del cliente.  
@@ -137,7 +137,7 @@ public function nuovaPiva(NuovaPivaRequest $request)
             'address'   => $metaPiva->address,
             'cap'       => $metaPiva->cap,
             'city'      => $metaPiva->city,
-            'province'  => $metaPiva->province,
+            'province'  => $metaPiva->province ?? null,
             'country'   => $metaPiva->country,
             'sdi'       => $metaPiva->sdi,
             'pec'       => $metaPiva->pec,
@@ -180,7 +180,7 @@ public function nuovaPiva(NuovaPivaRequest $request)
             'address' => $clienteData['address'],
             'cap' => $clienteData['cap'],
             'city' => $clienteData['city'],
-            'province' => $clienteData['province'],
+            'province' => $clienteData['province'] ?? null,
             'country' => $clienteData['country'],
             'sdi' => $clienteData['sdi'],
             'pec' => $clienteData['pec'],
@@ -264,7 +264,7 @@ public function nuovaPiva(NuovaPivaRequest $request)
                 'company_id'        => $company->id,
                 'client_id'         => $client->id,
                 'numbering_id'      => $num->id,
-                'invoice_number'    => $num->prefix . $num->getNextNumericPart(),
+                'invoice_number'    => ($num->prefix ? $num->prefix . '-' : '') . $num->getNextNumericPart(),
                 'issue_date'        => $data['issue_date'],
                 'fiscal_year'       => Carbon::parse($data['issue_date'])->year,
                 'withholding_tax'   => 0,

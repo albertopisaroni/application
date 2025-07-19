@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html
-  lang="IT"
-  xml:lang="IT"
+  lang="{{ strtoupper($invoice->client->country ?? 'IT') }}"
+  xml:lang="{{ strtoupper($invoice->client->country ?? 'IT') }}"
   xmlns="http://www.w3.org/1999/xhtml"
   xmlns:v="urn:schemas-microsoft-com:vml"
   xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -14,7 +14,18 @@
     <meta name="x-apple-disable-message-reformatting">
     <meta name="color-scheme" content="light">
     <meta name="supported-color-schemes" content="light">
-    <title>Hai una nuova fattura da visualizzare: {{ $invoice->invoice_number }}</title>
+    @php
+        $langMap = [
+            'IT' => 'it',
+            'ES' => 'es',
+            'UK' => 'en',
+            'GB' => 'en',
+            'EN' => 'en',
+            'FR' => 'fr',
+        ];
+        $locale = $langMap[strtoupper($invoice->client->country ?? 'IT')] ?? 'it';
+    @endphp
+    <title>{{ __('emails.Hai una nuova fattura da visualizzare', [], $locale) }}: {{ $invoice->invoice_number }}</title>
 
 
     <!--[if mso]>
@@ -340,7 +351,7 @@ padding-bottom: 20px;
 </tbody>
 </table>
 <p style="margin-top: 0;margin-right: 0;margin-bottom: 20px;margin-left: 0;line-height:32px;font-size:24px;font-weight: 400;color: #181840;">
-			Hai una nuova fattura da visualizzare.
+			{{ __('emails.Hai una nuova fattura da visualizzare', [], $locale) }}.
 </p>
 @php
     $intro = $invoice->contact_info ?? $invoice->numbering->contact_info ?? null;
@@ -367,7 +378,7 @@ margin-bottom: 8px;
     </p>
 <p
 	style="margin-right: 0; margin-left: 0;margin-top: 25px; margin-bottom: 12px;line-height:21px;font-size:14px;font-weight: 400;color: #181840;	"
->	Ecco i dettagli della fattura:
+>	{{ __('emails.Ecco i dettagli della fattura', [], $locale) }}:
 </p><table
 	cellpadding="0"
 	cellspacing="0"
@@ -383,7 +394,7 @@ margin-bottom: 8px;
 			<tr>
 				<td style="padding-right: 20px; vertical-align: top" nowrap>
 <p style="margin-right: 0;margin-left: 0;	margin-top: 4px;margin-bottom: 0px;line-height:21px;font-size:14px;color: #181840;	font-weight: 300;">						
-		Fattura numero:
+		{{ __('emails.Fattura numero', [], $locale) }}:
 </p>				</td>
 				<td width="100%">
 
@@ -398,7 +409,7 @@ margin-bottom: 8px;
 			<tr>
 				<td style="padding-right: 20px; vertical-align: top" nowrap>
 <p style="margin-right: 0;margin-left: 0;	margin-top: 4px;margin-bottom: 0px;line-height:21px;font-size:14px;color: #181840;	font-weight: 300;">						
-Importo totale:
+{{ __('emails.Importo totale', [], $locale) }}:
 </p>
 </td>
 				<td>
@@ -411,7 +422,7 @@ Importo totale:
 			<tr>
 				<td style="padding-right: 20px; vertical-align: top" nowrap>
 <p style="margin-right: 0;margin-left: 0;	margin-top: 4px;margin-bottom: 0px;line-height:21px;font-size:14px;color: #181840;	font-weight: 300;">						
-Da pagare entro:
+{{ __('emails.Da pagare entro', [], $locale) }}:
 </p>
 </td>
 				<td>
@@ -493,7 +504,7 @@ border-radius: 4px;
                             width: 100%;
                             text-align: center;
                           ">
-                            Visualizza la fattura
+                            {{ __('emails.Visualizza la fattura', [], $locale) }}
                           </a>
                         </td>
                       </tr>
@@ -503,7 +514,7 @@ border-radius: 4px;
 	</tbody>
 </table>
   <p style="margin-right: 0;margin-left: 0;margin-top: 8px;margin-bottom: 10px;line-height: 24px;font-size: 14px;color: #181840; font-weight: 300;">
-    Se la fattura non è ancora stata pagata, quando effettui il bonifico ricordati di inserire il numero della fattura <strong>{{ $invoice->invoice_number }}</strong> o la causale, così possiamo identificarlo subito, senza intoppi.
+    {{ __('emails.Se la fattura non è ancora stata pagata', [], $locale) }} <strong>{{ $invoice->invoice_number }}</strong> {{ __('emails.o la causale', [], $locale) }}
   </p>
 </td>
 </tr>
@@ -766,7 +777,7 @@ height="24"
 			<td style="padding-top: 20px;">
 <p
 	style=" margin-right: 0; margin-left: 0;margin-top: 8px; margin-bottom: 8px; line-height:16px;font-size:10px;color: #6B6B85;	font-weight: 300;" >
-Newo ti ha inviato questa email per conto di {{ $invoice->company->name }} – P.IVA {{ $invoice->company->piva }} che ti ha spedito una fattura. Se vuoi sapere come gestiamo i dati o leggere la nostra privacy policy, <a href="#" style="color: #050505; text-decoration: underline;">clicca qui</a>.</p>			</td>
+{{ __('emails.Newo ti ha inviato questa email', [], $locale) }} {{ $invoice->company->name }} – {{ __('emails.P.IVA', [], $locale) }} {{ $invoice->company->piva }} {{ __('emails.che ti ha spedito una fattura', [], $locale) }}. {{ __('emails.Se vuoi sapere come gestiamo i dati', [], $locale) }}, <a href="#" style="color: #050505; text-decoration: underline;">{{ __('emails.clicca qui', [], $locale) }}</a>.</p>			</td>
 		</tr>
 	</tbody>
 </table>									</td>

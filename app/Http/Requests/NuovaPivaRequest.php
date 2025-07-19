@@ -62,17 +62,6 @@ class NuovaPivaRequest extends FormRequest
         $validator->after(function ($validator) {
             $scadenze = $this->input('scadenze');
             $issueDate = $this->input('issue_date') ?? now()->toDateString();
-
-            if (is_array($scadenze)) {
-                foreach ($scadenze as $index => $scadenza) {
-                    if (!empty($scadenza['date']) && $scadenza['date'] <= $issueDate) {
-                        $validator->errors()->add(
-                            "scadenze.$index.date",
-                            "La scadenza n.{$index} deve essere successiva alla data di emissione ({$issueDate})."
-                        );
-                    }
-                }
-            }
         });
     }
 

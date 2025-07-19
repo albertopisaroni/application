@@ -20,8 +20,17 @@ class InvoiceMail extends Mailable
 
     public function build()
     {    
-        return $this->from('fatture@newo.io', $this->company->name . ' (via Newo.io)')
-                    ->subject("Ecco la nuova fattura n. {$this->invoice->invoice_number}")
+        // Map country code to locale for translations
+        $locale = match($this->invoice->client->country) {
+            'IT' => 'it',
+            'ES' => 'es',
+            'UK' => 'en',
+            'FR' => 'fr',
+            default => 'en'
+        };
+        
+        return $this->from('fatture@newo.io', $this->company->name . ' (' . __('emails.via_newo', [], $locale) . ')')
+                    ->subject(__('emails.invoice_subject', ['number' => $this->invoice->invoice_number], $locale))
                     ->view('emails.invoice')
                     ->with([
                         'invoice' => $this->invoice,
