@@ -14,6 +14,7 @@ class InvoicePayment extends Model
         'invoice_id',
         'amount',
         'payment_date',
+        'payment_method_id',
         'method',
         'note',
     ];
@@ -34,6 +35,11 @@ class InvoicePayment extends Model
     public function invoice()
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class);
     }
 
     protected function validateAmount(): void

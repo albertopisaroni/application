@@ -186,6 +186,35 @@
                                                     Invia via email
                                                 </div>
                                             </button>
+                                            
+                                            <button 
+                                                @click="open = false; window.open('{{ $invoice->pdf_url }}', '_blank')"
+                                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            >
+                                                <div class="flex items-center gap-2">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M4 2.5A1.5 1.5 0 0 1 5.5 1h5A1.5 1.5 0 0 1 12 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 13.5v-11z" stroke="currentColor" stroke-width="1.5"/>
+                                                        <path d="M9 4.5h1.5M9 6.5h1.5M9 8.5h1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                                    </svg>
+                                                    Visualizza fattura
+                                                </div>
+                                            </button>
+
+                                            @if($invoice->payment_status !== 'Pagata')
+                                            <button 
+                                                @click="open = false; confirmReceivePayment({{ $invoice->id }}, '{{ $invoice->invoice_number }}', {{ $invoice->total }}, {{ $invoice->payments->sum('amount') }})"
+                                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            >
+                                                <div class="flex items-center gap-2">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5v-7z" stroke="currentColor" stroke-width="1.5"/>
+                                                        <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                                                        <path d="M8 6.5v3M6.5 8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                                    </svg>
+                                                    Ricevi pagamento
+                                                </div>
+                                            </button>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -205,6 +234,9 @@
 </div>
 
 <script>
+// Global payment methods for current company
+window.companyPaymentMethods = @json($paymentMethods);
+
 document.addEventListener('livewire:init', () => {
     Livewire.on('confirm-send-email', (event) => {
         const invoiceId = event.invoiceId;
@@ -225,4 +257,216 @@ document.addEventListener('livewire:init', () => {
         });
     });
 });
+
+function confirmReceivePayment(invoiceId, invoiceNumber, total, paidAmount) {
+    const remaining = (total - paidAmount).toFixed(2);
+    const paymentMethods = window.companyPaymentMethods || [];
+    
+    // Generate payment method options dynamically
+    let paymentMethodOptions = '';
+    paymentMethods.forEach(method => {
+        const displayName = method.name + (method.iban ? ` (${method.iban})` : '');
+        paymentMethodOptions += `<option value="${method.id}">${displayName}</option>`;
+    });
+    
+    // Fallback options if no payment methods are configured
+    if (paymentMethodOptions === '') {
+        paymentMethodOptions = `
+            <option value="bonifico">Bonifico</option>
+            <option value="carta">Carta di credito</option>
+            <option value="contanti">Contanti</option>
+            <option value="assegno">Assegno</option>
+            <option value="altro">Altro</option>
+        `;
+    }
+    
+    Swal.fire({
+        title: 'Registra pagamento',
+        html: `
+            <div class="text-left space-y-4">
+                <div class="bg-gray-50 p-3 rounded">
+                    <p><strong>Fattura:</strong> ${invoiceNumber}</p>
+                    <p><strong>Totale:</strong> €${total.toFixed(2)}</p>
+                    <p><strong>Già pagato:</strong> €${paidAmount.toFixed(2)}</p>
+                    <p><strong>Rimanente:</strong> €${remaining}</p>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Opzioni di pagamento:</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="paymentType" value="full" checked class="mr-2" onchange="togglePaymentFields()">
+                            <span>Pagamento totale (€${remaining})</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="paymentType" value="partial" class="mr-2" onchange="togglePaymentFields()">
+                            <span>Pagamento parziale</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div id="partialPaymentFields" class="space-y-3" style="display: none;">
+                    <div>
+                        <label class="block font-semibold mb-1">Data scadenza rimanente:</label>
+                        <input type="date" id="dueDate" class="w-full border rounded px-3 py-2" value="${new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0]}">
+                    </div>
+                    
+                    <div>
+                        <label class="block font-semibold mb-1">Importo da pagare ora:</label>
+                        <div class="flex items-center space-x-2 mb-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="amountType" value="euro" checked class="mr-1" onchange="toggleAmountType()">
+                                <span>€</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="amountType" value="percent" class="mr-1" onchange="toggleAmountType()">
+                                <span>%</span>
+                            </label>
+                        </div>
+                        
+                        <div id="euroInput">
+                            <input type="number" id="amountEuro" step="0.01" min="0.01" max="${remaining}" 
+                                   class="w-full border rounded px-3 py-2" placeholder="0.00" 
+                                   onchange="calculateRemaining()" oninput="calculateRemaining()">
+                        </div>
+                        
+                        <div id="percentInput" style="display: none;">
+                            <input type="range" id="amountPercent" min="10" max="90" value="50" 
+                                   class="w-full" onchange="calculateFromPercent()" oninput="calculateFromPercent()">
+                            <div class="text-center mt-1">
+                                <span id="percentValue">50</span>% = €<span id="percentAmount">${(remaining * 0.5).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50 p-3 rounded">
+                        <p><strong>Importo rimanente dopo questo pagamento:</strong> €<span id="remainingAfter">${remaining}</span></p>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-1">Data pagamento:</label>
+                    <input type="date" id="paymentDate" class="w-full border rounded px-3 py-2" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-1">Metodo di pagamento:</label>
+                    <select id="paymentMethod" class="w-full border rounded px-3 py-2">
+                        ${paymentMethodOptions}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-1">Note (opzionale):</label>
+                    <textarea id="paymentNote" class="w-full border rounded px-3 py-2" rows="2" placeholder="Note aggiuntive..."></textarea>
+                </div>
+            </div>
+        `,
+        icon: 'question',
+        width: '600px',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#ef4444',
+        confirmButtonText: 'Registra pagamento',
+        cancelButtonText: 'Annulla',
+        preConfirm: () => {
+            const paymentType = document.querySelector('input[name="paymentType"]:checked').value;
+            const paymentDate = document.getElementById('paymentDate').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const paymentNote = document.getElementById('paymentNote').value;
+            
+            let amount;
+            let dueDate = null;
+            
+            if (paymentType === 'full') {
+                amount = parseFloat(remaining);
+            } else {
+                const amountType = document.querySelector('input[name="amountType"]:checked').value;
+                if (amountType === 'euro') {
+                    amount = parseFloat(document.getElementById('amountEuro').value);
+                } else {
+                    const percent = parseFloat(document.getElementById('amountPercent').value);
+                    amount = parseFloat((remaining * percent / 100).toFixed(2));
+                }
+                dueDate = document.getElementById('dueDate').value;
+            }
+            
+            if (!paymentDate) {
+                Swal.showValidationMessage('Seleziona la data del pagamento');
+                return false;
+            }
+            
+            if (!amount || amount <= 0) {
+                Swal.showValidationMessage('Inserisci un importo valido');
+                return false;
+            }
+            
+            if (amount > parseFloat(remaining)) {
+                Swal.showValidationMessage('L\'importo non può superare il rimanente da pagare');
+                return false;
+            }
+            
+            return {
+                amount: amount,
+                paymentDate: paymentDate,
+                method: paymentMethod,
+                note: paymentNote,
+                dueDate: dueDate,
+                isPartial: paymentType === 'partial'
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const paymentData = result.value;
+            @this.receivePayment(invoiceId, paymentData);
+        }
+    });
+}
+
+function togglePaymentFields() {
+    const paymentType = document.querySelector('input[name="paymentType"]:checked').value;
+    const partialFields = document.getElementById('partialPaymentFields');
+    
+    if (paymentType === 'partial') {
+        partialFields.style.display = 'block';
+        calculateRemaining();
+    } else {
+        partialFields.style.display = 'none';
+    }
+}
+
+function toggleAmountType() {
+    const amountType = document.querySelector('input[name="amountType"]:checked').value;
+    const euroInput = document.getElementById('euroInput');
+    const percentInput = document.getElementById('percentInput');
+    
+    if (amountType === 'euro') {
+        euroInput.style.display = 'block';
+        percentInput.style.display = 'none';
+        calculateRemaining();
+    } else {
+        euroInput.style.display = 'none';
+        percentInput.style.display = 'block';
+        calculateFromPercent();
+    }
+}
+
+function calculateRemaining() {
+    const remaining = parseFloat(document.querySelector('#partialPaymentFields').closest('.swal2-html-container').textContent.match(/Rimanente: €([\d.,]+)/)[1].replace(',', '.'));
+    const amount = parseFloat(document.getElementById('amountEuro').value) || 0;
+    const remainingAfter = (remaining - amount).toFixed(2);
+    document.getElementById('remainingAfter').textContent = remainingAfter;
+}
+
+function calculateFromPercent() {
+    const remaining = parseFloat(document.querySelector('#partialPaymentFields').closest('.swal2-html-container').textContent.match(/Rimanente: €([\d.,]+)/)[1].replace(',', '.'));
+    const percent = document.getElementById('amountPercent').value;
+    const amount = (remaining * percent / 100).toFixed(2);
+    
+    document.getElementById('percentValue').textContent = percent;
+    document.getElementById('percentAmount').textContent = amount;
+    
+    const remainingAfter = (remaining - amount).toFixed(2);
+    document.getElementById('remainingAfter').textContent = remainingAfter;
+}
 </script>

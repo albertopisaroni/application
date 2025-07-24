@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Invoice;
 use App\Jobs\SendInvoiceEmailJob;
+use App\Models\PaymentMethod;
 
 class InvoiceList extends Component
 {
@@ -16,6 +17,7 @@ class InvoiceList extends Component
     public $perPage = 10;
     public $search = '';
     public $paymentStatusFilter = null;
+    public $paymentMethods = [];
 
     protected $queryString = [
         'yearFilter' => ['except' => null],
@@ -57,6 +59,54 @@ class InvoiceList extends Component
             'company_id' => session('current_company_id'),
             'timestamp' => now()->toDateTimeString(),
         ]);
+    }
+
+    public function receivePayment($invoiceId, $paymentData = null)
+    {
+        try {
+            $invoice = Invoice::findOrFail($invoiceId);
+            
+            if ($paymentData) {
+                // Create the payment record
+                $paymentMethodId = is_numeric($paymentData['method']) ? (int)$paymentData['method'] : null;
+                $paymentMethodName = $paymentData['method'];
+                
+                // If it's a numeric ID, get the payment method name
+                if ($paymentMethodId) {
+                    $paymentMethod = PaymentMethod::find($paymentMethodId);
+                    if ($paymentMethod) {
+                        $paymentMethodName = $paymentMethod->name;
+                    }
+                }
+                
+                $invoice->payments()->create([
+                    'amount' => $paymentData['amount'],
+                    'payment_date' => $paymentData['paymentDate'],
+                    'payment_method_id' => $paymentMethodId,
+                    'method' => $paymentMethodName,
+                    'note' => $paymentData['note'] ?? null,
+                ]);
+                
+                // If it's a partial payment and there's a due date, update payment schedule
+                if ($paymentData['isPartial'] && $paymentData['dueDate']) {
+                    $remainingAmount = $invoice->total - $invoice->payments->sum('amount');
+                    
+                    // Create or update payment schedule for remaining amount
+                    $invoice->paymentSchedules()->create([
+                        'due_date' => $paymentData['dueDate'],
+                        'amount' => $remainingAmount,
+                        'type' => 'amount',
+                    ]);
+                }
+                
+                $this->dispatch('show-success', message: 'Pagamento registrato con successo');
+            } else {
+                // Fallback: open payment modal for manual handling
+                $this->dispatch('open-payment-modal', invoiceId: $invoiceId);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('show-error', message: 'Errore nella registrazione del pagamento: ' . $e->getMessage());
+        }
     }
 
     public function mount()
@@ -114,8 +164,6 @@ class InvoiceList extends Component
 
         $invoices = $query->paginate($this->perPage);
 
-       
-
         $unpaidInvoices = $allInvoices->filter(fn($invoice) =>
             $invoice->payments->sum('amount') < $invoice->total
         );
@@ -126,11 +174,15 @@ class InvoiceList extends Component
             $invoice->total - $invoice->payments->sum('amount')
         );
 
+        // Load payment methods for the current company
+        $this->paymentMethods = PaymentMethod::where('company_id', $currentCompanyId)->get();
+
         return view('livewire.invoice-list', [
             'invoices' => $invoices,
             'unpaidCount' => $unpaidCount,
             'paidCount' => $paidCount,
             'unpaidTotal' => $unpaidTotal,
+            'paymentMethods' => $this->paymentMethods,
         ]);
     }
 }
