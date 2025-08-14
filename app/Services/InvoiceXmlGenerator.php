@@ -22,12 +22,12 @@ class InvoiceXmlGenerator
         $iban          = $paymentMethod?->iban       ?? '';
 
         $company = $invoice->company;                         // belongsTo
-        $companyName = htmlspecialchars(trim($company->legal_name), ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        $companyName = htmlspecialchars(trim($company->legal_name), ENT_XML1, 'UTF-8');
         $isForf  = (bool) $company->forfettario;
 
         $codiceFiscale = trim($company->codice_fiscale);
         $cfXml = ($codiceFiscale !== '' && $codiceFiscale !== $company->piva)
-            ? "<CodiceFiscale>{$codiceFiscale}</CodiceFiscale>"
+            ? "<CodiceFiscale>" . htmlspecialchars($codiceFiscale, ENT_XML1, 'UTF-8') . "</CodiceFiscale>"
             : '';
 
         // ----------------------------
@@ -46,9 +46,9 @@ class InvoiceXmlGenerator
         $codiceValido = $sdi !== '0000000' && preg_match('/^[A-Za-z0-9]{7}$/', $sdi);
 
         $destinatario = $codiceValido
-            ? "<CodiceDestinatario>{$sdi}</CodiceDestinatario>"
+            ? "<CodiceDestinatario>" . htmlspecialchars($sdi, ENT_XML1, 'UTF-8') . "</CodiceDestinatario>"
             : "<CodiceDestinatario>0000000</CodiceDestinatario>"
-              . ($pec ? "<PECDestinatario>{$pec}</PECDestinatario>" : '');
+              . ($pec ? "<PECDestinatario>" . htmlspecialchars($pec, ENT_XML1, 'UTF-8') . "</PECDestinatario>" : '');
 
         // ----------------------------
         // 4) REA E CONTATTI CEDENTE
@@ -62,10 +62,10 @@ class InvoiceXmlGenerator
         if (! empty($company->rea_ufficio) && ! empty($company->rea_numero)) {
             $reaXml = "
             <IscrizioneREA>
-              <Ufficio>{$company->rea_ufficio}</Ufficio>
-              <NumeroREA>{$company->rea_numero}</NumeroREA>"
+              <Ufficio>" . htmlspecialchars($company->rea_ufficio, ENT_XML1, 'UTF-8') . "</Ufficio>
+              <NumeroREA>" . htmlspecialchars($company->rea_numero, ENT_XML1, 'UTF-8') . "</NumeroREA>"
               . (! empty($company->rea_stato_liquidazione)
-                  ? "<StatoLiquidazione>{$company->rea_stato_liquidazione}</StatoLiquidazione>"
+                  ? "<StatoLiquidazione>" . htmlspecialchars($company->rea_stato_liquidazione, ENT_XML1, 'UTF-8') . "</StatoLiquidazione>"
                   : '')
             ."</IscrizioneREA>";
         }
@@ -74,7 +74,7 @@ class InvoiceXmlGenerator
         if (! empty($company->email)) {
             $contactsXml = "
             <Contatti>
-              <Email>{$company->email}</Email>
+              <Email>" . htmlspecialchars($company->email, ENT_XML1, 'UTF-8') . "</Email>
             </Contatti>";
         }
 
@@ -94,7 +94,7 @@ class InvoiceXmlGenerator
             $descr = htmlspecialchars(trim(
                 ($row->name ?: 'Articolo') .
                 ($row->description ? " - {$row->description}" : '')
-            ));
+            ), ENT_XML1, 'UTF-8');
 
             $linee .= "
             <DettaglioLinee>
@@ -136,7 +136,7 @@ class InvoiceXmlGenerator
         if (in_array($tipoDoc,['TD24','TD25']) && $invoice->ddt_number) {
             $ddtXml = "
             <DatiDDT>
-              <NumeroDDT>{$invoice->ddt_number}</NumeroDDT>
+              <NumeroDDT>" . htmlspecialchars($invoice->ddt_number, ENT_XML1, 'UTF-8') . "</NumeroDDT>
               <DataDDT>{$invoice->ddt_date}</DataDDT>
             </DatiDDT>";
         }
@@ -178,7 +178,7 @@ class InvoiceXmlGenerator
             $originalInvoice = $invoice->originalInvoice;
             $datiFattureCollegateXml = "
             <DatiFattureCollegate>
-              <IdDocumento>{$originalInvoice->invoice_number}</IdDocumento>
+              <IdDocumento>" . htmlspecialchars($originalInvoice->invoice_number, ENT_XML1, 'UTF-8') . "</IdDocumento>
               <Data>{$originalInvoice->issue_date->format('Y-m-d')}</Data>
             </DatiFattureCollegate>";
         }
@@ -204,7 +204,7 @@ class InvoiceXmlGenerator
               <ImportoPagamento>{$importo}</ImportoPagamento>"
               // IBAN solo se bonifico
               .($sdiMode === 'MP05' && $iban
-                ? "<IBAN>{$iban}</IBAN>"
+                ? "<IBAN>" . htmlspecialchars($iban, ENT_XML1, 'UTF-8') . "</IBAN>"
                 : '')
             ."</DettaglioPagamento>";
         }
@@ -213,100 +213,116 @@ class InvoiceXmlGenerator
         $clientProvince = $client->province !== null ? "<Provincia>" . substr($client->province, 0, 2) . "</Provincia>" : "";
 
         // -------------------------
-        // 9) ASSEMBLAGGIO FINALE
+        // 9) ESCAPE DEI CAMPI XML
         // -------------------------
-        $xml = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<p:FatturaElettronica versione="FPR12"
-  xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
-  xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2 
-                      http://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2/Schema_del_file_xml_FatturaPA_versione_1.2.xsd">
-  <FatturaElettronicaHeader>
-    <DatiTrasmissione>
-      <IdTrasmittente>
-        <IdPaese>IT</IdPaese>
-        <IdCodice>{$company->piva}</IdCodice>
-      </IdTrasmittente>
-      <ProgressivoInvio>{$invoice->sdi_attempt}</ProgressivoInvio>
-      <FormatoTrasmissione>FPR12</FormatoTrasmissione>
-      {$destinatario}
-      <ContattiTrasmittente>
-        <Email>{$company->pec_email}</Email>
-      </ContattiTrasmittente>
-    </DatiTrasmissione>
-    <CedentePrestatore>
-      <DatiAnagrafici>
-        <IdFiscaleIVA>
-          <IdPaese>IT</IdPaese>
-          <IdCodice>{$company->piva}</IdCodice>
-        </IdFiscaleIVA>
-        {$cfXml}
-        <Anagrafica>
-          <Denominazione>{$companyName}</Denominazione>
-        </Anagrafica>
-        <RegimeFiscale>{$regime}</RegimeFiscale>
-      </DatiAnagrafici>
-      <Sede>
-        <Indirizzo>{$company->legal_street}</Indirizzo>
-        <NumeroCivico>{$company->legal_number}</NumeroCivico>
-        <CAP>{$company->legal_zip}</CAP>
-        <Comune>{$company->legal_city}</Comune>
-        {$companyProvince}
-        <Nazione>{$company->legal_country}</Nazione>
-      </Sede>
-      {$reaXml}
-      {$contactsXml}
-    </CedentePrestatore>
-    <CessionarioCommittente>
-      <DatiAnagrafici>
-        <IdFiscaleIVA>
-          <IdPaese>{$client->country}</IdPaese>
-          <IdCodice>{$client->piva}</IdCodice>
-        </IdFiscaleIVA>
-        <Anagrafica>
-          <Denominazione>{$client->name}</Denominazione>
-        </Anagrafica>
-      </DatiAnagrafici>
-      <Sede>
-        <Indirizzo>{$client->address}</Indirizzo>
-        <CAP>{$client->cap}</CAP>
-        <Comune>{$client->city}</Comune>
-        {$clientProvince}
-        <Nazione>{$client->country}</Nazione>
-      </Sede>
-    </CessionarioCommittente>
-  </FatturaElettronicaHeader>
-  <FatturaElettronicaBody>
-    <DatiGenerali>
-      <DatiGeneraliDocumento>
-        <TipoDocumento>{$tipoDoc}</TipoDocumento>
-        <Divisa>EUR</Divisa>
-        <Data>{$dateDoc}</Data>
-        <Numero>{$num}</Numero>
-        {$scontoXml}
-        <ImportoTotaleDocumento>{$totDoc}</ImportoTotaleDocumento>
-        <Causale>{$causale}</Causale>
-        {$bollo}
-        {$ddtXml}
-        <AltriDatiGestionali>
-          <TipoDato>AswSwHouse</TipoDato>
-          <RiferimentoTesto>Newo.io</RiferimentoTesto>
-        </AltriDatiGestionali>
-      </DatiGeneraliDocumento>
-      {$datiFattureCollegateXml}
-    </DatiGenerali>
-    <DatiBeniServizi>
-      {$linee}
-      {$riepilogoXml}
-    </DatiBeniServizi>
-    <DatiPagamento>
-      {$datiPagamento}
-    </DatiPagamento>
-  </FatturaElettronicaBody>
-</p:FatturaElettronica>
-XML;
+        $companyPiva = htmlspecialchars($company->piva, ENT_XML1, 'UTF-8');
+        $companyStreet = htmlspecialchars($company->legal_street, ENT_XML1, 'UTF-8');
+        $companyNumber = htmlspecialchars($company->legal_number, ENT_XML1, 'UTF-8');
+        $companyZip = htmlspecialchars($company->legal_zip, ENT_XML1, 'UTF-8');
+        $companyCity = htmlspecialchars($company->legal_city, ENT_XML1, 'UTF-8');
+        $companyCountry = htmlspecialchars($company->legal_country, ENT_XML1, 'UTF-8');
+        $companyPecEmail = htmlspecialchars($company->pec_email, ENT_XML1, 'UTF-8');
+        
+        $clientPiva = htmlspecialchars($client->piva, ENT_XML1, 'UTF-8');
+        $clientName = htmlspecialchars($client->name, ENT_XML1, 'UTF-8');
+        $clientAddress = htmlspecialchars($client->address, ENT_XML1, 'UTF-8');
+        $clientCap = htmlspecialchars($client->cap, ENT_XML1, 'UTF-8');
+        $clientCity = htmlspecialchars($client->city, ENT_XML1, 'UTF-8');
+        $clientCountry = htmlspecialchars($client->country, ENT_XML1, 'UTF-8');
+        
+        $invoiceNumber = htmlspecialchars($num, ENT_XML1, 'UTF-8');
+        $causaleEscaped = htmlspecialchars($causale, ENT_XML1, 'UTF-8');
+
+        // -------------------------
+        // 10) ASSEMBLAGGIO FINALE
+        // -------------------------
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+        $xml .= "\n";
+        $xml .= '<p:FatturaElettronica versione="FPR12" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2 http://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2/Schema_del_file_xml_FatturaPA_versione_1.2.xsd">';
+        $xml .= "\n  <FatturaElettronicaHeader>";
+        $xml .= "\n    <DatiTrasmissione>";
+        $xml .= "\n      <IdTrasmittente>";
+        $xml .= "\n        <IdPaese>IT</IdPaese>";
+        $xml .= "\n        <IdCodice>{$companyPiva}</IdCodice>";
+        $xml .= "\n      </IdTrasmittente>";
+        $xml .= "\n      <ProgressivoInvio>{$invoice->sdi_attempt}</ProgressivoInvio>";
+        $xml .= "\n      <FormatoTrasmissione>FPR12</FormatoTrasmissione>";
+        $xml .= "\n      {$destinatario}";
+        $xml .= "\n      <ContattiTrasmittente>";
+        $xml .= "\n        <Email>{$companyPecEmail}</Email>";
+        $xml .= "\n      </ContattiTrasmittente>";
+        $xml .= "\n    </DatiTrasmissione>";
+        $xml .= "\n    <CedentePrestatore>";
+        $xml .= "\n      <DatiAnagrafici>";
+        $xml .= "\n        <IdFiscaleIVA>";
+        $xml .= "\n          <IdPaese>IT</IdPaese>";
+        $xml .= "\n          <IdCodice>{$companyPiva}</IdCodice>";
+        $xml .= "\n        </IdFiscaleIVA>";
+        $xml .= "\n        {$cfXml}";
+        $xml .= "\n        <Anagrafica>";
+        $xml .= "\n          <Denominazione>{$companyName}</Denominazione>";
+        $xml .= "\n        </Anagrafica>";
+        $xml .= "\n        <RegimeFiscale>{$regime}</RegimeFiscale>";
+        $xml .= "\n      </DatiAnagrafici>";
+        $xml .= "\n      <Sede>";
+        $xml .= "\n        <Indirizzo>{$companyStreet}</Indirizzo>";
+        $xml .= "\n        <NumeroCivico>{$companyNumber}</NumeroCivico>";
+        $xml .= "\n        <CAP>{$companyZip}</CAP>";
+        $xml .= "\n        <Comune>{$companyCity}</Comune>";
+        $xml .= "\n        {$companyProvince}";
+        $xml .= "\n        <Nazione>{$companyCountry}</Nazione>";
+        $xml .= "\n      </Sede>";
+        $xml .= "\n      {$reaXml}";
+        $xml .= "\n      {$contactsXml}";
+        $xml .= "\n    </CedentePrestatore>";
+        $xml .= "\n    <CessionarioCommittente>";
+        $xml .= "\n      <DatiAnagrafici>";
+        $xml .= "\n        <IdFiscaleIVA>";
+        $xml .= "\n          <IdPaese>{$clientCountry}</IdPaese>";
+        $xml .= "\n          <IdCodice>{$clientPiva}</IdCodice>";
+        $xml .= "\n        </IdFiscaleIVA>";
+        $xml .= "\n        <Anagrafica>";
+        $xml .= "\n          <Denominazione>{$clientName}</Denominazione>";
+        $xml .= "\n        </Anagrafica>";
+        $xml .= "\n      </DatiAnagrafici>";
+        $xml .= "\n      <Sede>";
+        $xml .= "\n        <Indirizzo>{$clientAddress}</Indirizzo>";
+        $xml .= "\n        <CAP>{$clientCap}</CAP>";
+        $xml .= "\n        <Comune>{$clientCity}</Comune>";
+        $xml .= "\n        {$clientProvince}";
+        $xml .= "\n        <Nazione>{$clientCountry}</Nazione>";
+        $xml .= "\n      </Sede>";
+        $xml .= "\n    </CessionarioCommittente>";
+        $xml .= "\n  </FatturaElettronicaHeader>";
+        $xml .= "\n  <FatturaElettronicaBody>";
+        $xml .= "\n    <DatiGenerali>";
+        $xml .= "\n      <DatiGeneraliDocumento>";
+        $xml .= "\n        <TipoDocumento>{$tipoDoc}</TipoDocumento>";
+        $xml .= "\n        <Divisa>EUR</Divisa>";
+        $xml .= "\n        <Data>{$dateDoc}</Data>";
+        $xml .= "\n        <Numero>{$invoiceNumber}</Numero>";
+        $xml .= "\n        {$scontoXml}";
+        $xml .= "\n        <ImportoTotaleDocumento>{$totDoc}</ImportoTotaleDocumento>";
+        $xml .= "\n        <Causale>{$causaleEscaped}</Causale>";
+        $xml .= "\n        {$bollo}";
+        $xml .= "\n        {$ddtXml}";
+        $xml .= "\n        <AltriDatiGestionali>";
+        $xml .= "\n          <TipoDato>AswSwHouse</TipoDato>";
+        $xml .= "\n          <RiferimentoTesto>Newo.io</RiferimentoTesto>";
+        $xml .= "\n        </AltriDatiGestionali>";
+        $xml .= "\n      </DatiGeneraliDocumento>";
+        $xml .= "\n      {$datiFattureCollegateXml}";
+        $xml .= "\n    </DatiGenerali>";
+        $xml .= "\n    <DatiBeniServizi>";
+        $xml .= "\n      {$linee}";
+        $xml .= "\n      {$riepilogoXml}";
+        $xml .= "\n    </DatiBeniServizi>";
+        $xml .= "\n    <DatiPagamento>";
+        $xml .= "\n      {$datiPagamento}";
+        $xml .= "\n    </DatiPagamento>";
+        $xml .= "\n  </FatturaElettronicaBody>";
+        $xml .= "\n</p:FatturaElettronica>";
+        
         Log::info('Invoice XML generated', [
             'invoice_id' => $invoice->id,
             'invoice_number' => $num,
