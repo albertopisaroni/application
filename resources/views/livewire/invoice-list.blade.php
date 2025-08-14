@@ -161,7 +161,7 @@
                         <td class="py-4 px-4 whitespace-nowrap">  
     
                             @if ($invoice->payment_status === 'Pagata')
-                                <span class="bg-[#cff5d4] text-[#3aab53] border-[#3aab53] border text-xs font-medium px-3 py-1 rounded-full">
+                                <span class="bg-[#edffef] text-[#1b7101] text-xs font-medium px-3 py-1 rounded-[4px]">
                             @elseif ($invoice->payment_status === 'Parziale')
                                 <span class="bg-[#EFF8FF] text-[#395cd3] border-[#bfdbfe] border text-xs font-medium px-3 py-1 rounded-full">
                             @else
@@ -194,11 +194,11 @@
                                 </span>
                             @elseif ($invoice->sdi_status === 'sent' || $invoice->sdi_status === 'pending')
                                 <span class="bg-[#EFF8FF] text-[#395cd3] border-[#bfdbfe] border text-xs font-medium px-3 py-1 rounded-full">
-                                    @if ($invoice->sdi_status === 'sent')
-                                        Inviato
-                                    @else
-                                        Invio in corso
-                                    @endif
+                                    Inviato
+                                </span>
+                            @elseif($invoice->sdi_status === 'received')
+                                <span class="bg-[#edffef] text-[#1b7101] text-xs font-medium px-3 py-1 rounded-[4px]">
+                                    Ricevuta
                                 </span>
                             @else
                                 <span class="text-gray-400 text-xs">–</span>

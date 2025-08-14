@@ -126,7 +126,7 @@
                 <div class="space-y-2 ">
                     <template x-for="item in [
                         { name: 'Fatture', value: 'fatture', icon: 'invoice' },
-                        { name: 'Spese', value: 'spese', icon: 'spese', comingSoon: true },
+                        { name: 'Spese', value: 'spese', icon: 'spese' },
                         { name: 'Automazioni', value: 'automazioni', icon: 'automazioni', comingSoon: true },
                         { name: 'PEC', value: 'email', icon: 'mail', comingSoon: true },
                         { name: 'Tasse e Tributi', value: 'tasse', icon: 'tasse', comingSoon: true },
