@@ -7,7 +7,7 @@
         <livewire:fiscoapi-session-button />
 
 
-            @if ($yearFilter || $search || $paymentStatusFilter)
+            @if ($yearFilter || $search || $paymentStatusFilter || $numberingFilter)
             <button wire:click="resetFilters" class="items-center gap-x-2 flex bg-[#e8e8e8] pr-4 pl-3 py-2 text-sm rounded-[4px] transition">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
                         <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
@@ -20,6 +20,13 @@
                 <option value="null" disabled selected hidden>Seleziona anno</option>
                 @foreach ($years as $y)
                     <option value="{{ $y }}">{{ $y }}</option>
+                @endforeach
+            </select>
+
+            <select wire:model.live="numberingFilter" class="text-[#050505] invalid:text-[#aba7af] border border-[#e8e8e8] rounded px-3 py-2 text-sm pr-8" required>
+                <option value="null" disabled selected hidden>Numerazione</option>
+                @foreach($numberings as $num)
+                    <option value="{{ $num['id'] }}"> {{ $num['name'] }}</option>
                 @endforeach
             </select>
 
@@ -114,6 +121,7 @@
                     <th class="py-2 pl-2 pr-4 font-normal">Cliente</th>
                     <th class="py-2 px-4 font-normal">Numerazione</th>
                     <th class="py-2 px-4 font-normal">Stato</th>
+                    <th class="py-2 px-4 font-normal">SDI</th>
                     <th class="py-2 px-4 font-normal">Importo</th>
                     <th class="py-2 px-4 font-normal">Netto post tasse</th>
                     <th class="py-2 px-4 font-normal">Data di emissione</th>
@@ -154,6 +162,39 @@
                                 {{ $invoice->payment_status }}
                             </span>
                             
+                        </td>
+                        <td class="py-4 px-4 whitespace-nowrap">
+                            @if ($invoice->sdi_status === 'error')
+                                @php
+                                    $errorDescription = '';
+                                    if ($invoice->sdi_error_description) {
+                                        $errorData = json_decode($invoice->sdi_error_description, true);
+                                        $errorDescription = $errorData['message'] ?? $invoice->sdi_error_description;
+                                    }
+                                @endphp
+                                <span 
+                                    class="bg-[#fff4f0] text-[#FC460E] text-xs font-medium px-3 py-1 rounded-[4px] cursor-help tooltip-container relative"
+                                    data-error="{{ $errorDescription }}"
+                                >
+                                    Errore
+                                    @if($errorDescription)
+                                    <div class="tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 invisible transition-all duration-200 pointer-events-none z-50 max-w-xs whitespace-normal text-center">
+                                        {{ $errorDescription }}
+                                        <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                                    </div>
+                                    @endif
+                                </span>
+                            @elseif ($invoice->sdi_status === 'sent' || $invoice->sdi_status === 'pending')
+                                <span class="bg-[#EFF8FF] text-[#395cd3] border-[#bfdbfe] border text-xs font-medium px-3 py-1 rounded-full">
+                                    @if ($invoice->sdi_status === 'sent')
+                                        Inviato
+                                    @else
+                                        Invio in corso
+                                    @endif
+                                </span>
+                            @else
+                                <span class="text-gray-400 text-xs">–</span>
+                            @endif
                         </td>
                         <td class="whitespace-nowrap py-4 px-4 text-gray-900 font-medium">{{ number_format($invoice->total, 2, ',', '.') }} EUR</td>
                         <td class="whitespace-nowrap py-4 px-4 text-gray-900 font-medium"><span class="font-normal">≈</span>{{ number_format($invoice->netto_post_tax, 2, ',', '.') }} EUR</td>
@@ -215,6 +256,21 @@
                                                 </div>
                                             </button>
                                             @endif
+                                            
+                                            @if($invoice->sdi_status === 'error')
+                                            <button 
+                                                @click="open = false; confirmResendToSdi({{ $invoice->id }}, '{{ $invoice->invoice_number }}')"
+                                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            >
+                                                <div class="flex items-center gap-2">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M1 8.5A6.5 6.5 0 0 1 7.5 2v0A6.5 6.5 0 0 1 14 8.5v.5m0 0-2-2m2 2 2-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M15 7.5A6.5 6.5 0 0 1 8.5 14v0A6.5 6.5 0 0 1 2 7.5v-.5m0 0 2 2m-2-2-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                    Reinvia tramite SDI
+                                                </div>
+                                            </button>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -257,6 +313,28 @@ document.addEventListener('livewire:init', () => {
         });
     });
 });
+
+function confirmResendToSdi(invoiceId, invoiceNumber) {
+    Swal.fire({
+        title: 'Reinvia fattura a SDI',
+        html: `
+            <div class="text-left">
+                <p>Stai per reinviare la fattura <strong>${invoiceNumber}</strong> al Sistema di Interscambio.</p>
+                <p class="mt-2 text-sm text-gray-600">Verrà incrementato il progressivo invio e la fattura sarà riprocessata.</p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sì, reinvia',
+        cancelButtonText: 'Annulla'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            @this.resendToSdi(invoiceId);
+        }
+    });
+}
 
 function confirmReceivePayment(invoiceId, invoiceNumber, total, paidAmount) {
     const remaining = (total - paidAmount).toFixed(2);

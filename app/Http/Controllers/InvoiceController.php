@@ -42,7 +42,6 @@ class InvoiceController extends Controller
             'numbering_id'   => 'required|exists:invoice_numberings,id',
             'invoice_number' => 'required|string|unique:invoices,invoice_number',
             'invoice_date'   => 'required|date',
-            // Campi per il cliente e per la fattura...
             'client_name'    => 'required|string',
             'client_address' => 'nullable|string',
             'client_email'   => 'nullable|email',

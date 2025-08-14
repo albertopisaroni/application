@@ -160,6 +160,11 @@ class StripeSyncCommand extends Command
 
                 $client = Client::where('stripe_customer_id', $subscription->customer)->first();
 
+                if (!$client) {
+                    $this->warn("⚠️  Cliente non trovato per subscription {$subscription->id} (customer: {$subscription->customer}). Probabilmente eliminato - saltando subscription...");
+                    continue; // Salta questa subscription
+                }
+
                 $subscriptionItem = $subscription->items->data[0];
                 $price = $subscriptionItem->price;
                 $quantity = $subscriptionItem->quantity ?? 1;
@@ -240,6 +245,7 @@ class StripeSyncCommand extends Command
                         ? Carbon::createFromTimestampUTC($subscriptionItem->current_period_end)
                         ->setTimezone('Europe/Rome')
                         : null,
+                    'stripe_account_id'     => $stripeAccount->id,
                     'quantity'              => $quantity,
                     'unit_amount'           => $unitAmount,
                     'subtotal_amount'       => $subtotal,

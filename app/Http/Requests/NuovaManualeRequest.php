@@ -48,9 +48,10 @@ class NuovaManualeRequest extends FormRequest
             'cliente.address'  => 'required|string',
             'cliente.cap'      => 'required|string',
             'cliente.city'     => 'required|string',
+            'cliente.province' => 'required|string',
             'cliente.country'  => 'required|string',
             'cliente.sdi'      => 'nullable|string',
-            'cliente.pec'      => 'nullable|email',
+            'cliente.pec'      => 'nullable|email', 
             'cliente.email'    => 'nullable|email',
             'cliente.phone'    => 'nullable|string',
 

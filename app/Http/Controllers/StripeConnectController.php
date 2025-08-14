@@ -102,20 +102,52 @@ class StripeConnectController extends Controller
             'grant_type' => 'authorization_code',
         ]);
 
+
         if (! $response->successful()) {
             return redirect(config('app.app_url').'/abbonamenti')->with('error', 'Errore nel collegamento Stripe');
         }
 
         $data = $response->json();
 
-        $company->stripeAccounts()->create([
-            'stripe_user_id' => $data['stripe_user_id'],
-            'access_token' => $data['access_token'],
-            'refresh_token' => $data['refresh_token'] ?? null,
-            'default' => $company->stripeAccounts()->count() === 0, // primo = default
-        ]);
+        // Fetch account details from Stripe to get the account name
+        $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
+        $stripeAccountDetails = null;
+        $accountName = null;
+        
+        try {
+            $stripeAccountDetails = $stripe->accounts->retrieve($data['stripe_user_id']);
+            $accountName = $stripeAccountDetails->business_profile->name 
+                ?? $stripeAccountDetails->settings->dashboard->display_name 
+                ?? $data['stripe_user_id'];
+        } catch (\Exception $e) {
+            // Fallback to stripe_user_id if we can't fetch account details
+            $accountName = $data['stripe_user_id'];
+        }
 
-        $stripeAccount = StripeAccount::where('access_token', $data['access_token'])->first();
+
+        // Check if this company already has this Stripe account
+        $existingAccount = $company->stripeAccounts()
+            ->where('stripe_user_id', $data['stripe_user_id'])
+            ->first();
+
+        if ($existingAccount) {
+            // Update existing account with new tokens and account name
+            $existingAccount->update([
+                'account_name' => $accountName,
+                'access_token' => $data['access_token'],
+                'refresh_token' => $data['refresh_token'] ?? null,
+            ]);
+            $stripeAccount = $existingAccount;
+        } else {
+            // Create new account
+            $stripeAccount = $company->stripeAccounts()->create([
+                'stripe_user_id' => $data['stripe_user_id'],
+                'account_name' => $accountName,
+                'access_token' => $data['access_token'],
+                'refresh_token' => $data['refresh_token'] ?? null,
+                'default' => $company->stripeAccounts()->count() === 0, // primo = default
+            ]);
+        }
 
         if (! $stripeAccount) {
             return redirect(config('app.app_url').'/abbonamenti')->with('error', 'Errore nel collegamento Stripe: account non trovato');

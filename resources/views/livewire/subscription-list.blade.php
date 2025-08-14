@@ -4,7 +4,7 @@
 
         <div class="flex items-center gap-x-4">
 
-            @if ($search || $paymentStatusFilter || $numberingFilter)
+            @if ($search || $paymentStatusFilter || $numberingFilter || $stripeAccountFilter)
                 <button wire:click="resetFilters" class="items-center gap-x-2 flex bg-[#e8e8e8] pr-4 pl-3 py-2 text-sm rounded-[4px] transition">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
                         <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
@@ -23,13 +23,49 @@
                 <option value="scheduled">Programmato</option>
             </select>
 
-            <select wire:model.live="numberingFilter" class="text-[#050505] invalid:text-[#aba7af] border border-[#e8e8e8] rounded px-3 py-2 text-sm pr-8" required>
-                <option value="null" disabled selected hidden>Numerazione</option>
-                @foreach($numberings as $num)
-                    <option value="{{ $num['id'] }}"> {{ $num['name'] }}</option>
+            <select wire:model.live="stripeAccountFilter" class="text-[#050505] invalid:text-[#aba7af] border border-[#e8e8e8] rounded px-3 py-2 text-sm pr-8" required>
+                <option value="null" disabled selected hidden>Account</option>
+                @foreach($stripeAccounts as $account)
+                    <option value="{{ $account['id'] }}">{{ $account['account_name'] ?? $account['stripe_user_id'] }}</option>
                 @endforeach
             </select>
 
+            <div class="relative" x-data="{ open: false }">
+                <button 
+                    @click="open = !open" 
+                    class="size-9 bg-[#e8e8e8] rounded-[4px] flex items-center justify-center"
+                    type="button"
+                >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 1V11M1 6H11" stroke="#050505" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                
+                <div 
+                    x-show="open" 
+                    @click.away="open = false" 
+                    x-transition:enter="transition ease-out duration-100"
+                    x-transition:enter-start="transform opacity-0 scale-95"
+                    x-transition:enter-end="transform opacity-100 scale-100"
+                    x-transition:leave="transition ease-in duration-75"
+                    x-transition:leave-start="transform opacity-100 scale-100"
+                    x-transition:leave-end="transform opacity-0 scale-95"
+                    class="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 z-50"
+                    style="display: none;"
+                >
+                    <div class="py-1">
+                        <a 
+                            href="{{ route('stripe.connect') }}" 
+                            class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7 1C7 0.447715 7.44772 0 8 0C8.55228 0 9 0.447715 9 1V7H15C15.5523 7 16 7.44772 16 8C16 8.55228 15.5523 9 15 9H9V15C9 15.5523 8.55228 16 8 16C7.44772 16 7 15.5523 7 15V9H1C0.447715 9 0 8.55228 0 8C0 7.44772 0.447715 7 1 7H7V1Z" fill="currentColor"/>
+                            </svg>
+                            Collega account Stripe
+                        </a>
+                    </div>
+                </div>
+            </div>
 
             <button class="size-9 bg-[#e8e8e8] rounded-[4px] flex items-center justify-center">
                 <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">

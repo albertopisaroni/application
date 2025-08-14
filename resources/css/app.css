@@ -6,6 +6,10 @@
     display: none;
 }
 
+.tooltip-container:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
 
 @font-face {
     font-family: "PolySansTrial";

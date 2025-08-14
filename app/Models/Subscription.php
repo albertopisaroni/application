@@ -14,6 +14,7 @@ class Subscription extends Model
         'start_date',
         'current_period_end',
         'company_id',
+        'stripe_account_id',
         'quantity',
         'unit_amount',
         'subtotal_amount',
@@ -34,6 +35,11 @@ class Subscription extends Model
     public function price()
     {
         return $this->belongsTo(Price::class);
+    }
+
+    public function stripeAccount()
+    {
+        return $this->belongsTo(StripeAccount::class);
     }
 
     public function getNettoPostTaxAttribute(): float

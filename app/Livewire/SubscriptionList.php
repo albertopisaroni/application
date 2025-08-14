@@ -17,6 +17,8 @@ class SubscriptionList extends Component
     public $perPage                   = 10;
     public $search                    = '';
     public $paymentStatusFilter       = null;
+    public array  $stripeAccounts     = [];
+    public $stripeAccountFilter       = null;
 
 
     // metriche del mese
@@ -42,11 +44,17 @@ class SubscriptionList extends Component
         $this->resetPage();
     }
 
+    public function updatingStripeAccountFilter()
+    {
+        $this->resetPage();
+    }
+
     public function resetFilters()
     {
         $this->numberingFilter     = null;
         $this->search              = '';
         $this->paymentStatusFilter = null;
+        $this->stripeAccountFilter = null;
         $this->resetPage();
     }
 
@@ -57,6 +65,8 @@ class SubscriptionList extends Component
         $this->numberings = \App\Models\InvoiceNumbering::whereHas('stripeAccount', function($q) use($companyId) {
             $q->where('company_id', $companyId);
         })->get()->toArray();
+
+        $this->stripeAccounts = \App\Models\StripeAccount::where('company_id', $companyId)->get()->toArray();
     }
 
     public function render()
@@ -128,12 +138,16 @@ class SubscriptionList extends Component
             //  --- filtro stato
             ->when($this->paymentStatusFilter, function($q) {
                 if ($this->paymentStatusFilter === 'unpaid') {
-                    // “Non pagato” = unpaid OR past_due
+                    // "Non pagato" = unpaid OR past_due
                     $q->whereIn('status', ['unpaid','past_due']);
                 } else {
                     $q->where('status', $this->paymentStatusFilter);
                 }
             })
+            //  --- filtro account Stripe
+            ->when($this->stripeAccountFilter > 0, fn($q) =>
+                $q->where('stripe_account_id', $this->stripeAccountFilter)
+            )
             ->orderBy('start_date','desc')
             ->orderBy('id','desc');
 
@@ -148,6 +162,7 @@ class SubscriptionList extends Component
             'activeCount'     => $this->activeCount,
             'mrr'             => $this->mrr,
             'numberings'      => $this->numberings,
+            'stripeAccounts'  => $this->stripeAccounts,
         ]);
     }
 }

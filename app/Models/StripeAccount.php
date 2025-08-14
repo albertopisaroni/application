@@ -12,6 +12,7 @@ class StripeAccount extends Model
     protected $fillable = [
         'company_id',
         'stripe_user_id',
+        'account_name',
         'access_token',
         'refresh_token',
         'default',
@@ -26,5 +27,10 @@ class StripeAccount extends Model
     public function invoiceNumbering()
     {
         return $this->belongsTo(InvoiceNumbering::class);
+    }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
     }
 }

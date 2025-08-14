@@ -208,8 +208,8 @@ class InvoiceXmlGenerator
             ."</DettaglioPagamento>";
         }
 
-        $companyProvince = $company->legal_province !== null ? "<Provincia>{$company->legal_province}</Provincia>" : "";
-        $clientProvince = $client->province !== null ? "<Provincia>{$client->province}</Provincia>" : "";
+        $companyProvince = $company->legal_province !== null ? "<Provincia>" . substr($company->legal_province, 0, 2) . "</Provincia>" : "";
+        $clientProvince = $client->province !== null ? "<Provincia>" . substr($client->province, 0, 2) . "</Provincia>" : "";
 
         // -------------------------
         // 9) ASSEMBLAGGIO FINALE

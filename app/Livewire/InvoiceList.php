@@ -7,6 +7,8 @@ use Livewire\WithPagination;
 use App\Models\Invoice;
 use App\Jobs\SendInvoiceEmailJob;
 use App\Models\PaymentMethod;
+use App\Jobs\SendInvoiceToSdiJob;
+use App\Models\InvoiceNumbering;
 
 class InvoiceList extends Component
 {
@@ -18,12 +20,13 @@ class InvoiceList extends Component
     public $search = '';
     public $paymentStatusFilter = null;
     public $paymentMethods = [];
+    public $numberingFilter = null;
 
     protected $queryString = [
         'yearFilter' => ['except' => null],
         'search' => ['except' => ''],
         'paymentStatusFilter' => ['except' => null],
-
+        'numberingFilter' => ['except' => null],    
     ];
 
     public function updatingYearFilter()
@@ -36,6 +39,7 @@ class InvoiceList extends Component
         $this->yearFilter = null;
         $this->search = '';
         $this->paymentStatusFilter = null;
+        $this->numberingFilter = null;
         $this->resetPage();
     }
 
@@ -109,6 +113,39 @@ class InvoiceList extends Component
         }
     }
 
+    public function resendToSdi($invoiceId)
+    {
+        try {
+            $invoice = Invoice::findOrFail($invoiceId);
+            
+            // Incrementa il tentativo di invio
+            $invoice->increment('sdi_attempt');
+            
+            // Resetta lo stato per permettere il reinvio
+            $invoice->update([
+                'sdi_status' => 'pending',
+                'sdi_error' => null,
+                'sdi_error_description' => null,
+            ]);
+            
+            // Rilancia il job di invio a SDI
+            SendInvoiceToSdiJob::dispatch($invoiceId);
+            
+            $this->dispatch('show-success', message: 'Fattura in coda per il reinvio a SDI');
+            
+            \Log::info('Reinvio fattura a SDI', [
+                'invoice_id' => $invoiceId,
+                'invoice_number' => $invoice->invoice_number,
+                'sdi_attempt' => $invoice->sdi_attempt,
+                'user_id' => auth()->id(),
+                'company_id' => session('current_company_id'),
+                'timestamp' => now()->toDateTimeString(),
+            ]);
+        } catch (\Exception $e) {
+            $this->dispatch('show-error', message: 'Errore nel reinvio a SDI: ' . $e->getMessage());
+        }
+    }
+
     public function mount()
     {
         if ($this->yearFilter === '') {
@@ -138,6 +175,10 @@ class InvoiceList extends Component
 
         if ($this->yearFilter) {
             $query->where('fiscal_year', $this->yearFilter);
+        }
+
+        if ($this->numberingFilter) {
+            $query->where('numbering_id', $this->numberingFilter);
         }
 
         if ($this->search) {
@@ -174,6 +215,8 @@ class InvoiceList extends Component
             $invoice->total - $invoice->payments->sum('amount')
         );
 
+        $numberings = InvoiceNumbering::where('company_id', $currentCompanyId)->get();
+
         // Load payment methods for the current company
         $this->paymentMethods = PaymentMethod::where('company_id', $currentCompanyId)->get();
 
@@ -181,8 +224,9 @@ class InvoiceList extends Component
             'invoices' => $invoices,
             'unpaidCount' => $unpaidCount,
             'paidCount' => $paidCount,
-            'unpaidTotal' => $unpaidTotal,
+            'unpaidTotal' => $unpaidTotal,  
             'paymentMethods' => $this->paymentMethods,
+            'numberings' => $numberings,
         ]);
     }
 }
