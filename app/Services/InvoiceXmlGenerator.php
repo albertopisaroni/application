@@ -22,7 +22,7 @@ class InvoiceXmlGenerator
         $iban          = $paymentMethod?->iban       ?? '';
 
         $company = $invoice->company;                         // belongsTo
-        $companyName = htmlspecialchars(trim($company->legal_name), ENT_XML1, 'UTF-8');
+        $companyName = htmlspecialchars(substr(trim($company->legal_name), 0, 80), ENT_XML1, 'UTF-8');
         $isForf  = (bool) $company->forfettario;
 
         $codiceFiscale = trim($company->codice_fiscale);
@@ -224,7 +224,7 @@ class InvoiceXmlGenerator
         $companyPecEmail = htmlspecialchars($company->pec_email, ENT_XML1, 'UTF-8');
         
         $clientPiva = htmlspecialchars($client->piva, ENT_XML1, 'UTF-8');
-        $clientName = htmlspecialchars($client->name, ENT_XML1, 'UTF-8');
+        $clientName = htmlspecialchars(substr(trim($client->name), 0, 80), ENT_XML1, 'UTF-8');
         $clientAddress = htmlspecialchars($client->address, ENT_XML1, 'UTF-8');
         $clientCap = htmlspecialchars($client->cap, ENT_XML1, 'UTF-8');
         $clientCity = htmlspecialchars($client->city, ENT_XML1, 'UTF-8');
