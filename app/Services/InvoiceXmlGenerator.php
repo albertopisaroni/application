@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Invoice;
 use App\Models\PaymentMethod;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class InvoiceXmlGenerator
 {
@@ -214,7 +215,7 @@ class InvoiceXmlGenerator
         // -------------------------
         // 9) ASSEMBLAGGIO FINALE
         // -------------------------
-        return <<<XML
+        $xml = <<<XML
 <?xml version="1.0" encoding="UTF-8"?>
 <p:FatturaElettronica versione="FPR12"
   xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
@@ -306,5 +307,11 @@ class InvoiceXmlGenerator
   </FatturaElettronicaBody>
 </p:FatturaElettronica>
 XML;
+        Log::info('Invoice XML generated', [
+            'invoice_id' => $invoice->id,
+            'invoice_number' => $num,
+            'xml' => $xml,
+        ]);
+        return $xml;
     }
 }
