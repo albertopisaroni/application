@@ -329,10 +329,20 @@ class OpenApiController extends Controller
             // Trova o crea il fornitore
             $supplier = $this->findOrCreateSupplier($invoiceDetails['supplier_data']);
             
-            // Trova la company (per ora prende la prima, in futuro si può mappare tramite P.IVA)
-            $company = Company::first();
+            // Estrai la partita IVA del cessionario committente dall'XML
+            $cessionarioPiva = null;
+            if (isset($payload['fattura_elettronica_header']['cessionario_committente']['dati_anagrafici']['id_fiscale_iva']['id_codice'])) {
+                $cessionarioPiva = $payload['fattura_elettronica_header']['cessionario_committente']['dati_anagrafici']['id_fiscale_iva']['id_codice'];
+            }
+            
+            if (!$cessionarioPiva) {
+                throw new \Exception('Partita IVA del cessionario committente non trovata nell\'XML');
+            }
+            
+            // Trova la company tramite partita IVA
+            $company = Company::where('piva', $cessionarioPiva)->first();
             if (!$company) {
-                throw new \Exception('Nessuna company trovata nel sistema');
+                throw new \Exception('Company con P.IVA ' . $cessionarioPiva . ' non trovata nel sistema');
             }
 
             // Crea la fattura passiva
