@@ -50,6 +50,7 @@ class Company extends Model
         'rea_ufficio',
         'rea_numero',
         'rea_stato_liquidazione',
+        'agevolazione_inps',
     ];
 
     private static function configureCallbacks(Company $company)
