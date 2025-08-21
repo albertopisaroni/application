@@ -13,8 +13,8 @@
         default => 'dashboard',
     };
 
-    $mainSidebar = $selected !== 'dashboard' ? 'true' : 'false';
-    $secondarySidebar = $selected !== 'dashboard' ? 'true' : 'false';
+    $mainSidebar = ($selected !== 'dashboard' && $selected !== 'spese') ? 'true' : 'false';
+    $secondarySidebar = ($selected !== 'dashboard' && $selected !== 'spese') ? 'true' : 'false';
 @endphp
 
 <div x-data="{ 
@@ -26,26 +26,72 @@
         tooltipX: 0, 
         tooltipY: 0, 
         showTooltip: false,
-        tooltipTimeout: null
+        tooltipTimeout: null,
+        mobileMenuOpen: false,
+        mobileSubmenuOpen: false
     }"
-    class="flex h-screen bg-white text-sm text-gray-800 font-normal lg:fixed lg:inset-y-0 lg:z-40" wire:ignore>
+    x-effect="document.body.style.overflow = mobileMenuOpen && window.innerWidth < 1024 ? 'hidden' : 'auto'">
+    
+    <!-- Mobile Menu Toggle Button -->
+    <button
+        @click="mobileMenuOpen = true; mobileSubmenuOpen = false"
+        class="lg:hidden fixed top-4 left-4 z-40 p-2 rounded-md text-gray-700 bg-white shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500"
+        aria-label="Open menu"
+    >
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+    </button>
+    
+    <!-- Mobile Menu Backdrop -->
+    <div
+        x-show="mobileMenuOpen"
+        x-cloak
+        @click="mobileMenuOpen = false; mobileSubmenuOpen = false"
+        x-transition:enter="transition-opacity ease-linear duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-linear duration-300"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="lg:hidden fixed inset-0 bg-gray-600 bg-opacity-75 z-30"
+        aria-hidden="true"
+    ></div>
+    
+    <!-- Sidebar -->
+    <div
+    class="flex h-screen bg-white text-sm text-gray-800 font-normal fixed inset-y-0 z-50 transition-transform duration-300 ease-in-out lg:translate-x-0" 
+    :class="{ '-translate-x-full': !mobileMenuOpen && window.innerWidth < 1024 }"
+    wire:ignore>
 
     <!-- Sidebar principale -->
     <div
-        :class="mainSidebar ? '!w-[65px]' : '' "
+        :class="mainSidebar ? 'lg:!w-[65px]' : '' "
         class="w-[250px] bg-white z-50 border-r border-[#E8E8E8] flex flex-col justify-between pb-4 pt-6 px-4 overflow-auto transition-all duration-200 ease-in"
     >
         <div>
+            <!-- Mobile Header (Solo menu principale) -->
+            <div class="lg:hidden flex items-center justify-end mb-4" x-show="!mobileSubmenuOpen">
+                <button
+                    @click="mobileMenuOpen = false; mobileSubmenuOpen = false"
+                    class="p-2 rounded-md text-gray-500 hover:bg-gray-100"
+                    aria-label="Close menu"
+                >
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
 
             @livewire('company-switcher')
 
             <!-- Navigazione -->
-            <nav class="space-y-1 pt-3">
+            <nav class="space-y-1 pt-3" x-show="!mobileSubmenuOpen || window.innerWidth >= 1024">
 
                 @if (Auth::user()->admin)
                     <a href="#"
                         @mouseenter="
-                            if (mainSidebar) {
+                            if (mainSidebar && window.innerWidth >= 1024) {
                                 clearTimeout(tooltipTimeout);
                                 const rect = $event.currentTarget.getBoundingClientRect();
                                 tooltipTimeout = setTimeout(() => {
@@ -62,8 +108,12 @@
                         "
                         @click.prevent="
                             selected = 'admin';
-                            mainSidebar = true;
-                            secondarySidebar = true;
+                            if (window.innerWidth >= 1024) {
+                                mainSidebar = true;
+                                secondarySidebar = true;
+                            } else {
+                                mobileSubmenuOpen = true;
+                            }
                             showTooltip = false;
                             animateBars = true;
                             setTimeout(() => animateBars = false, 500);
@@ -81,10 +131,9 @@
                 @endif
 
                 <!-- Dashboard manuale -->
-                <a href="{{ route('dashboard') }}" 
-                    wire:navigate
+                <a href="#" 
                     @mouseenter="
-                        if (mainSidebar) {
+                        if (mainSidebar && window.innerWidth >= 1024) {
                             clearTimeout(tooltipTimeout);
                             const rect = $event.currentTarget.getBoundingClientRect();
                             tooltipTimeout = setTimeout(() => {
@@ -100,13 +149,32 @@
                         showTooltip = false;
                     "
                     @click.prevent="
-                        selected = 'dashboard'; 
-                        mainSidebar = false; 
-                        secondarySidebar = false; 
                         showTooltip = false;
-                        setTimeout(() => Livewire.navigate('/'), 200); 
+                        
+                        // Non navigare se siamo già sulla dashboard
+                        if (window.location.pathname === '/') {
+                            if (window.innerWidth < 1024) {
+                                mobileMenuOpen = false;
+                            }
+                            return;
+                        }
+                        
+                        // Solo se non siamo sulla dashboard, naviga
+                        selected = 'dashboard'; 
+                        if (window.innerWidth >= 1024) {
+                            mainSidebar = false; 
+                            secondarySidebar = false; 
+                        } else {
+                            mobileSubmenuOpen = false;
+                        }
                         animateBars = true; 
-                        setTimeout(() => animateBars = false, 500);
+                        setTimeout(() => {
+                            Livewire.navigate('/');
+                            if (window.innerWidth < 1024) {
+                                mobileMenuOpen = false;
+                            }
+                            animateBars = false;
+                        }, 200);
                     "
                     class="hover:scale-1015 transform flex items-center space-x-2 text-[#050505] py-1.5 px-1.5 rounded hover:border-[#f5f5f5] hover:bg-[#f5f5f5] text-[14px] !mb-5 border transition duration-200 ease-in"
                     :class="selected === 'dashboard' ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent'">
@@ -124,7 +192,7 @@
 
 
                 <div class="space-y-2 ">
-                    <template x-for="item in [
+                <template x-for="item in [
                         { name: 'Fatture', value: 'fatture', icon: 'invoice' },
                         { name: 'Spese', value: 'spese', icon: 'spese' },
                         { name: 'Automazioni', value: 'automazioni', icon: 'automazioni', comingSoon: true },
@@ -135,7 +203,7 @@
                     ]" :key="item.value">
                         <a href="#"
                             @mouseenter="
-                                if (mainSidebar) {
+                                if (mainSidebar && window.innerWidth >= 1024) {
                                     clearTimeout(tooltipTimeout);
                                     const rect = $event.currentTarget.getBoundingClientRect();
                                     tooltipTimeout = setTimeout(() => {
@@ -152,11 +220,43 @@
                             "
                             @click.prevent="
                                 if (!item.comingSoon) {
-                                    selected = item.value;
-                                    mainSidebar = true;
-                                    secondarySidebar = true;
-                                    animateBars = true;
-                                    setTimeout(() => animateBars = false, 500);
+                                    // Spese si comporta come Dashboard - navigazione diretta
+                                    if (item.value === 'spese') {
+                                        // Non navigare se siamo già su spese (controlla URL)
+                                        if (window.location.pathname.startsWith('/spese')) {
+                                            if (window.innerWidth < 1024) {
+                                                mobileMenuOpen = false;
+                                            }
+                                            return;
+                                        }
+                                        
+                                        selected = item.value;
+                                        if (window.innerWidth >= 1024) {
+                                            mainSidebar = false; 
+                                            secondarySidebar = false; 
+                                        } else {
+                                            mobileSubmenuOpen = false;
+                                        }
+                                        animateBars = true;
+                                        setTimeout(() => {
+                                            Livewire.navigate('/spese');
+                                            if (window.innerWidth < 1024) {
+                                                mobileMenuOpen = false;
+                                            }
+                                            animateBars = false;
+                                        }, 200);
+                                    } else {
+                                        // Comportamento normale per gli altri menu
+                                        selected = item.value;
+                                        if (window.innerWidth >= 1024) {
+                                            mainSidebar = true;
+                                            secondarySidebar = true;
+                                        } else if (item.value !== 'dashboard') {
+                                            mobileSubmenuOpen = true;
+                                        }
+                                        animateBars = true;
+                                        setTimeout(() => animateBars = false, 500);
+                                    }
                                 }
                             "
                             class="hover:scale-1015 transform flex items-center py-1.5 px-1.5 rounded text-[14px] border transition duration-200 ease-in relative"
@@ -240,13 +340,133 @@
                     </template>
                 </div>
             </nav>
-        </div>
+            
+            <!-- Mobile Submenu Container -->
+            <div 
+                x-show="mobileSubmenuOpen && window.innerWidth < 1024"
+                x-cloak
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 translate-x-full"
+                x-transition:enter-end="opacity-100 translate-x-0"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-x-0"
+                x-transition:leave-end="opacity-0 translate-x-full"
+                class="lg:hidden absolute inset-0 bg-white z-60 overflow-y-auto"
+            >
+                <!-- Mobile Submenu Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                    <button
+                        @click="mobileSubmenuOpen = false"
+                        class="p-2 rounded-md text-gray-500 hover:bg-gray-100"
+                        aria-label="Back to main menu"
+                    >
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <button
+                        @click="mobileMenuOpen = false; mobileSubmenuOpen = false"
+                        class="p-2 rounded-md text-gray-500 hover:bg-gray-100"
+                        aria-label="Close menu"
+                    >
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="px-4 py-2">
+                <!-- Mobile submenu content will be populated from secondary sidebar -->
+                
+                <!-- Fatture submenu -->
+                <div x-show="selected === 'fatture'">
+                    <h2 class="text-[16px] font-normal text-[#050505] mb-2 mt-0.5">Fatture</h2>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ordinaria</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="{{ route('fatture.lista') }}" wire:navigate @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('fatture.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Fatture</a>
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Preventivi</a>
+                        <a href="{{ route('note-di-credito.lista') }}" wire:navigate @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('note-di-credito.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Note di credito</a>
+                        @if (!Auth::user()->current_company->forfettario)
+                            <a href="{{ route('autofatture.lista') }}" wire:navigate @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('autofatture.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Autofatture</a>
+                        @endif
+                    </nav>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ricorrenti</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture ricorrenti</a>
+                        <a wire:navigate href="{{ route('abbonamenti.lista') }}" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('abbonamenti.lista') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Abbonamenti</a>
+                    </nav>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Gestione</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Prodotti</a>
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Numerazioni</a>
+                    </nav>
+                </div>
+                
+                <!-- Contatti submenu -->
+                <div x-show="selected === 'contatti'">
+                    <h2 class="text-[16px] font-normal text-[#050505] mb-2">Contatti</h2>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Anagrafiche</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="{{ route('contatti.clienti.lista') }}" wire:navigate @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Clienti</a>
+                    </nav>
+                </div>
+                
+                <!-- Email submenu -->
+                <div x-show="selected === 'email'">
+                    <h2 class="text-[16px] font-normal text-[#050505] mb-2">Email</h2>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Anagrafiche</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="{{ route('email.list') }}" wire:navigate @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Email</a>
+                    </nav>
+                </div>
+                
+                <!-- Documenti submenu -->
+                <div x-show="selected === 'documenti'">
+                    <h2 class="text-[16px] font-normal text-[#050505] mb-2">Documenti</h2>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Lavorazioni</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture</a>
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Preventivi</a>
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Contratti</a>
+                    </nav>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Spese</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Ricevute</a>
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">F24/MAV</a>
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Sanzioni</a>
+                    </nav>
+                    <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Documentazione</h3>
+                    <nav class="space-y-1 text-sm">
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">ADE</a>
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">INPS</a>
+                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Altro</a>
+                    </nav>
+                </div>
+                
+                @if (Auth::user()->admin)
+                    <!-- Admin submenu -->
+                    <div x-show="selected === 'admin'">
+                        <h2 class="text-[16px] font-normal text-[#050505] mb-2">Admin</h2>
+                        <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Sito internet</h3>
+                        <nav class="space-y-1 text-sm">
+                            <a href="{{ route('admin.registrations.index') }}" wire:navigate @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Registrazioni</a>
+                        </nav>
+                    </div>
+                @endif
+                
+                <!-- Default submenu for unsupported sections -->
+                <div x-show="!['fatture', 'contatti', 'email', 'documenti', 'admin'].includes(selected)">
+                    <h2 class="text-[16px] font-normal text-[#050505] mb-2 capitalize" x-text="selected"></h2>
+                    <p class="text-xs text-gray-500">Nessun sottomenu disponibile</p>
+                </div>
+                </div>
+            </div>
 
         <!-- Footer -->
         <div class="space-y-3 text-gray-500 mt-16 font-normal text-[14px] px-2 pb-2">
             
             <div 
-                x-show="!mainSidebar"
+                x-show="!mainSidebar || window.innerWidth < 1024"
                 x-transition:leave="transition ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0"
                 x-transition:leave-end="opacity-0 translate-y-4"
@@ -255,10 +475,10 @@
                 x-transition:enter-end="opacity-100 translate-y-0"
                 class="space-y-3"
             >
-                <a href="#" class="block hover:text-gray-900 truncate">Impostazioni</a>
-                <a href="{{ route('company.show') }}" wire:navigate class="block hover:text-gray-900 truncate">Gestione utenti</a>
-                <a href="#" class="block hover:text-gray-900 truncate">Integrazioni e partnership</a>
-                <a href="#" class="block hover:text-gray-900 truncate">Consiglia Newo</a>
+                <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block hover:text-gray-900 truncate">Impostazioni</a>
+                <a href="{{ route('company.show') }}" wire:navigate @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block hover:text-gray-900 truncate">Gestione utenti</a>
+                <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block hover:text-gray-900 truncate">Integrazioni e partnership</a>
+                <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block hover:text-gray-900 truncate">Consiglia Newo</a>
             </div>
 
             <a href="#" x-show="mainSidebar">
@@ -272,7 +492,7 @@
 
                 <div id="newo-logo" class="flex items-center mb-2">
 
-                    <svg class="origin-center -rotate-[12deg] -ml-[3px]" x-show="mainSidebar" width="22" height="21" viewBox="0 0 25 21" fill="none" xmlns="http://www.w3.org/2000/svg" x-show="true" class="w-auto h-[21px]">
+                    <svg class="origin-center -rotate-[12deg] -ml-[3px] hidden lg:block" x-show="mainSidebar" width="22" height="21" viewBox="0 0 25 21" fill="none" xmlns="http://www.w3.org/2000/svg" x-show="true" class="w-auto h-[21px]">
                         <g clip-path="url(#clip0_924_6609)">
                         <path :class="animateBars ? '-rotate-[35deg]' : 'translate-y-0'" class="transition-transform duration-200 origin-center" d="M6.34965 0.562185C7.47543 -0.170489 8.98092 0.147338 9.71359 1.27311L19.2685 16.2528C20.0011 17.3786 19.6833 18.884 18.5575 19.6167C17.4318 20.3494 15.9263 20.0316 15.1936 18.9058L5.63872 3.92613C4.90605 2.80035 5.22388 1.29486 6.34965 0.562185Z" fill="url(#paint0_linear_924_6609)" stroke="white" stroke-width="0.334554" stroke-miterlimit="10"/>
                         <path class="transition-transform duration-200 origin-center" d="M22.2247 14.3492C23.3193 14.5807 24.3941 13.8814 24.6255 12.7872C24.8569 11.6931 24.1571 10.6185 23.0625 10.3871L3.09953 6.16563C2.00496 5.93417 0.930071 6.6335 0.698706 7.72762C0.46734 8.82174 1.16711 9.89633 2.26168 10.1278L22.2247 14.3492Z" fill="url(#paint1_linear_924_6609)" stroke="white" stroke-width="0.306117" stroke-miterlimit="10"/>
@@ -325,11 +545,12 @@
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Sidebar secondaria -->
+    <!-- Sidebar secondaria (Desktop only) -->
         <div
-            :class="secondarySidebar ? '!left-[65px]' : '' "
-            class="w-[250px] h-full absolute left-0 transition-all duration-200 overflow-hidden border-r border-[#E8E8E8] px-4 pt-8 pb-6 "
+            :class="secondarySidebar ? 'lg:!left-[65px] left-0' : '' "
+            class="hidden lg:block w-full lg:w-[250px] h-full absolute left-0 transition-all duration-200 overflow-hidden lg:border-r border-[#E8E8E8] px-4 pt-16 lg:pt-8 pb-6 bg-white"
         >
 
         @if (Auth::user()->admin)
@@ -346,7 +567,10 @@
                         <h2 class="text-[16px] font-normal text-[#050505] mb-2">Admin</h2>
                         <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Sito internet</h3>
                         <nav class="space-y-1 text-sm">
-                            <a href="{{ route('admin.registrations.index') }}" wire:navigate class="block rounded py-1.5 px-2 hover:bg-gray-100">Registrazioni</a>
+                            <a href="{{ route('admin.registrations.index') }}" 
+                               wire:navigate 
+                               @click="if (window.innerWidth < 1024) mobileMenuOpen = false"
+                               class="block rounded py-1.5 px-2 hover:bg-gray-100">Registrazioni</a>
                         </nav>
                     </div>
                 </div>
@@ -378,22 +602,22 @@
                 <h2 class="text-[16px] font-normal text-[#050505] mb-2 mt-0.5">Fatture</h2>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ordinaria</h3>
                 <nav class="space-y-1 text-sm">
-                    <a href="{{ route('fatture.lista') }}" wire:navigate class="block rounded py-1.5 px-2 {{ request()->routeIs('fatture.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Fatture</a>
-                    <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Preventivi</a>
-                    <a href="{{ route('note-di-credito.lista') }}" wire:navigate class="block rounded py-1.5 px-2 {{ request()->routeIs('note-di-credito.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Note di credito</a>
+                    <a href="{{ route('fatture.lista') }}" wire:navigate @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('fatture.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Fatture</a>
+                    <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Preventivi</a>
+                    <a href="{{ route('note-di-credito.lista') }}" wire:navigate @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('note-di-credito.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Note di credito</a>
                     @if (!Auth::user()->current_company->forfettario)
-                        <a href="{{ route('autofatture.lista') }}" wire:navigate class="block rounded py-1.5 px-2 {{ request()->routeIs('autofatture.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Autofatture</a>
+                        <a href="{{ route('autofatture.lista') }}" wire:navigate @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('autofatture.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Autofatture</a>
                     @endif
                 </nav>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ricorrenti</h3>
                 <nav class="space-y-1 text-sm">
-                    <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture ricorrenti</a>
-                    <a wire:navigate href="{{ route('abbonamenti.lista') }}" class="block rounded py-1.5 px-2 {{ request()->routeIs('abbonamenti.lista') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Abbonamenti</a>
+                    <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture ricorrenti</a>
+                    <a wire:navigate href="{{ route('abbonamenti.lista') }}" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('abbonamenti.lista') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Abbonamenti</a>
                 </nav>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Gestione</h3>
                 <nav class="space-y-1 text-sm">
-                    <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Prodotti</a>
-                    <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Numerazioni</a>
+                    <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Prodotti</a>
+                    <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Numerazioni</a>
                 </nav>
             </div>
         </div>
@@ -411,7 +635,7 @@
                 <h2 class="text-[16px] font-normal text-[#050505] mb-2">Contatti</h2>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Anagrafiche</h3>
                 <nav class="space-y-1 text-sm">
-                    <a href="{{ route('contatti.clienti.lista') }}" wire:navigate class="block rounded py-1.5 px-2 hover:bg-gray-100">Clienti</a>
+                    <a href="{{ route('contatti.clienti.lista') }}" wire:navigate @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Clienti</a>
                 </nav>
             </div>
         </div>
@@ -428,7 +652,7 @@
                 <h2 class="text-[16px] font-normal text-[#050505] mb-2">Email</h2>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Anagrafiche</h3>
                 <nav class="space-y-1 text-sm">
-                    <a href="{{ route('email.list') }}" wire:navigate class="block rounded py-1.5 px-2 hover:bg-gray-100">Email</a>
+                    <a href="{{ route('email.list') }}" wire:navigate @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Email</a>
                 </nav>
             </div>
         </div>
@@ -446,21 +670,21 @@
                     <h2 class="text-[16px] font-normal text-[#050505] mb-2">Documenti</h2>
                     <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Lavorazioni</h3>
                     <nav class="space-y-1 text-sm">
-                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture</a>
-                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Preventivi</a>
-                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Contratti</a>
+                        <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture</a>
+                        <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Preventivi</a>
+                        <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Contratti</a>
                     </nav>
                     <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Spese</h3>
                     <nav class="space-y-1 text-sm">
-                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Ricevute</a>
-                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">F24/MAV</a>
-                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Sanzioni</a>
+                        <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Ricevute</a>
+                        <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">F24/MAV</a>
+                        <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Sanzioni</a>
                     </nav>
                     <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Documentazione</h3>
                     <nav class="space-y-1 text-sm">
-                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">ADE</a>
-                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">INPS</a>
-                        <a href="#" class="block rounded py-1.5 px-2 hover:bg-gray-100">Altro</a>
+                        <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">ADE</a>
+                        <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">INPS</a>
+                        <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Altro</a>
                     </nav>
                 </div>
             </div>
@@ -493,4 +717,5 @@
         class="fixed px-2 py-1 bg-black text-white text-xs rounded shadow z-[999999]"
         :style="`top: ${tooltipY}px; left: ${tooltipX}px; min-width: max-content;`"
     ></div>
+    </div>
 </div>

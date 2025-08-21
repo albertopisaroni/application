@@ -19,6 +19,7 @@ use App\Http\Controllers\SocialController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\OpenBankingController;
+use App\Http\Controllers\SpeseController;
 
 
 
@@ -90,6 +91,9 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
         Route::get('/autofatture/nuova', [InvoiceController::class, 'createSelfInvoice'])->name('autofatture.nuova');
         Route::post('/autofatture', [InvoiceController::class, 'storeSelfInvoice'])->name('autofatture.store');
 
+
+        // SPESE
+        Route::get('/spese', [SpeseController::class, 'list'])->name('spese.lista');
 
         Route::post('/update-company', function (Request $request) {
             session(['current_company_id' => $request->input('company_id')]);

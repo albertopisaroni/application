@@ -34,6 +34,10 @@
         @livewireStyles
 
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        
+        <style>
+            [x-cloak] { display: none !important; }
+        </style>
 
     </head>
 
@@ -44,7 +48,7 @@
 
         <div class="lg:pl-[315px]">
 
-            <main class="p-8">
+            <main class="p-4 lg:p-8">
                 {{ $slot }}
 
                 @if (session('status') !== null)
