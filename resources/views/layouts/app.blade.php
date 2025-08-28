@@ -1,3 +1,22 @@
+@php
+    $path = request()->path();
+
+    $selected = match (true) {
+        (str_starts_with($path, 'fatture') || str_starts_with($path, 'abbonamenti') || str_starts_with($path, 'note-di-credito') || str_starts_with($path, 'autofatture')) => 'fatture',
+        str_starts_with($path, 'contatti') => 'contatti',
+        str_starts_with($path, 'email') => 'email',
+        str_starts_with($path, 'spese') => 'spese',
+        str_starts_with($path, 'tasse') => 'tasse',
+        str_starts_with($path, 'documenti') => 'documenti',
+        str_starts_with($path, 'automazioni') => 'automazioni',
+        str_starts_with($path, 'admin') => 'admin',
+        default => 'dashboard',
+    };
+
+    $mainSidebar = ($selected !== 'dashboard' && $selected !== 'spese' && $selected !== 'tasse') ? 'true' : 'false';
+    $secondarySidebar = ($selected !== 'dashboard' && $selected !== 'spese' && $selected !== 'tasse') ? 'true' : 'false';
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-white antialiased">
     <head>
@@ -41,12 +60,161 @@
 
     </head>
 
-    <body class="h-full">
+    <body class="h-full"
+    x-data="{ 
+        selected: '{{ $selected }}', 
+        mainSidebar: {{ $mainSidebar }}, 
+        secondarySidebar: {{ $secondarySidebar }},
+        animateBars: false,
+        tooltipText: '', 
+        tooltipX: 0, 
+        tooltipY: 0, 
+        showTooltip: false,
+        tooltipTimeout: null,
+        mobileMenuOpen: false,
+        mobileSubmenuOpen: false,
+        handleAdminClick() {
+            // Se siamo già su admin, chiudi la sidebar secondaria
+            if (this.selected === 'admin') {
+                this.selected = 'admin';
+                if (window.innerWidth >= 1024) {
+                    this.mainSidebar = true;
+                    this.secondarySidebar = false; // Chiudi la sidebar secondaria
+                } else {
+                    this.mobileSubmenuOpen = false;
+                }
+            } else {
+                // Naviga a admin
+                this.selected = 'admin';
+                if (window.innerWidth >= 1024) {
+                    this.mainSidebar = true;
+                    this.secondarySidebar = true;
+                } else {
+                    this.mobileSubmenuOpen = true;
+                }
+            }
+            this.showTooltip = false;
+            this.animateBars = true;
+            setTimeout(() => this.animateBars = false, 500);
+        },
+        handleDashboardClick() {
+            this.showTooltip = false;
+            
+            // Non navigare se siamo già sulla dashboard
+            if (window.location.pathname === '/') {
+                if (window.innerWidth < 1024) {
+                    this.mobileMenuOpen = false;
+                }
+                return;
+            }
+            
+            // Solo se non siamo sulla dashboard, naviga
+            this.selected = 'dashboard'; 
+            if (window.innerWidth >= 1024) {
+                this.mainSidebar = false; 
+                this.secondarySidebar = false; // Chiudi sempre la sidebar secondaria per dashboard
+            } else {
+                this.mobileSubmenuOpen = false;
+            }
+            this.animateBars = true; 
+            setTimeout(() => {
+                Livewire.navigate('/');
+                if (window.innerWidth < 1024) {
+                    this.mobileMenuOpen = false;
+                }
+                this.animateBars = false;
+            }, 200);
+        },
+        handleMenuItemClick(item) {
+            if (!item.comingSoon) {
+                // Spese si comporta come Dashboard - navigazione diretta
+                if (item.value === 'spese') {
+                    if (window.innerWidth >= 1024) {
+                        this.mainSidebar = false; 
+                        this.secondarySidebar = false; // Chiudi sempre la sidebar secondaria per spese
+                    } else {
+                        this.mobileSubmenuOpen = false;
+                    }
+                    
+                    this.selected = item.value;
+                    this.animateBars = true;
+
+                    // Non navigare se siamo già su spese (controlla URL)
+                    if (window.location.pathname.startsWith('/spese')) {
+                        if (window.innerWidth < 1024) {
+                            this.mobileMenuOpen = false;
+                        }
+                        return;
+                    }
+
+                    setTimeout(() => {
+                        Livewire.navigate('/spese');
+                        if (window.innerWidth < 1024) {
+                            this.mobileMenuOpen = false;
+                        }
+                        this.animateBars = false;
+                    }, 200);
+                } else if (item.value === 'tasse') {
+                    this.selected = item.value;
+                    if (window.innerWidth >= 1024) {
+                        this.mainSidebar = false; 
+                        this.secondarySidebar = false; // Chiudi sempre la sidebar secondaria per tasse
+                    } else {
+                        this.mobileSubmenuOpen = false;
+                    }
+                    this.animateBars = true;
+
+                    // Non navigare se siamo già su tasse (controlla URL)
+                    if (window.location.pathname.startsWith('/tasse')) {
+                        if (window.innerWidth < 1024) {
+                            this.mobileMenuOpen = false;
+                        }
+                        return;
+                    }
+                        
+                    setTimeout(() => {
+                        Livewire.navigate('/tasse');
+                        if (window.innerWidth < 1024) {
+                            this.mobileMenuOpen = false;
+                        }
+                        this.animateBars = false;
+                    }, 200);
+                } else {
+                    // Comportamento normale per gli altri menu
+                    // Se siamo già sulla stessa sezione, chiudi la sidebar secondaria
+                    if (this.selected === item.value) {
+                        this.selected = item.value;
+                        if (window.innerWidth >= 1024) {
+                            this.mainSidebar = true;
+                            this.secondarySidebar = false; // Chiudi la sidebar secondaria
+                        } else {
+                            this.mobileSubmenuOpen = false;
+                        }
+                    } else {
+                        // Naviga a una nuova sezione
+                        this.selected = item.value;
+                        if (window.innerWidth >= 1024) {
+                            this.mainSidebar = true;
+                            this.secondarySidebar = true;
+                        } else if (item.value !== 'dashboard') {
+                            this.mobileSubmenuOpen = true;
+                        }
+                    }
+                    this.animateBars = true;
+                    setTimeout(() => this.animateBars = false, 500);
+                }
+            }
+        }
+    }"
+    x-effect="document.body.style.overflow = mobileMenuOpen && window.innerWidth < 1024 ? 'hidden' : 'auto'">
 
         
         @include('partials/sidebar')   
 
-        <div class="lg:pl-[315px]">
+        <div 
+            :class="secondarySidebar ? 'lg:pl-[315px]' : 'lg:pl-[250px]'"
+            class="transition-all duration-200 ease-in-out"
+        >
 
             <main class="p-4 lg:p-8">
                 {{ $slot }}

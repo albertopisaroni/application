@@ -11,6 +11,7 @@ use App\Http\Controllers\OpenApiController;
 use App\Models\Registration;
 use Illuminate\Support\Facades\Log;
 use App\Services\LeadAnalyzer;
+use App\Http\Controllers\Api\TaxController;
 
 /**
  * Questo endpoint non verrà documentato.
@@ -154,4 +155,18 @@ Route::post('/fiscoapi/session', [\App\Http\Controllers\Api\FiscoapiSessionContr
  * @hideFromAPIDocumentation
  */
 Route::post('/fiscoapi/webhook', [\App\Http\Controllers\Api\FiscoapiSessionController::class, 'webhook'])->withoutMiddleware(ApiTokenMiddleware::class);
+
+// Tax Management Routes
+Route::prefix('companies/{company}/taxes')->group(function () {
+    Route::get('/{year}', [TaxController::class, 'index']);
+    Route::post('/calculate', [TaxController::class, 'calculate']);
+});
+
+Route::get('/companies/{company}/tax-summary', [TaxController::class, 'summary']);
+
+Route::prefix('taxes')->group(function () {
+    Route::post('/{tax}/mark-paid', [TaxController::class, 'markPaid']);
+    Route::put('/{tax}', [TaxController::class, 'update']);
+    Route::delete('/{tax}', [TaxController::class, 'destroy']);
+});
 

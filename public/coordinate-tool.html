@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>F24 Coordinate Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { display: flex; gap: 20px; }
+        .image-container { position: relative; border: 2px solid #ccc; }
+        #f24Image { cursor: crosshair; }
+        .coordinates { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            border-radius: 5px;
+            min-width: 300px;
+        }
+        .coordinate-box {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+        .highlight { background: rgba(255, 0, 0, 0.3); position: absolute; }
+        input[type="file"] { margin: 10px 0; }
+        button { 
+            background: #007cba; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 3px; 
+            cursor: pointer; 
+            margin: 5px;
+        }
+        button:hover { background: #005a87; }
+    </style>
+</head>
+<body>
+    <h1>🔍 F24 Coordinate Tool</h1>
+    
+    <div class="container">
+        <div class="image-container">
+            <input type="file" id="imageInput" accept="image/*">
+            <br>
+            <canvas id="f24Canvas" width="800" height="600"></canvas>
+            <div id="highlights"></div>
+        </div>
+        
+        <div class="coordinates">
+            <h3>📐 Coordinate Trovate</h3>
+            <div id="coordinateList"></div>
+            <br>
+            <button onclick="copyCoordinates()">📋 Copia Coordinate</button>
+            <button onclick="clearAll()">🗑️ Cancella Tutto</button>
+            <br><br>
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <script>
+        let coordinates = [];
+        let isDrawing = false;
+        let startX, startY;
+        let canvas, ctx;
+
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas = document.getElementById('f24Canvas');
+                        ctx = canvas.getContext('2d');
+                        
+                        // Adatta canvas alle dimensioni dell'immagine
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Aggiungi event listeners
+                        canvas.addEventListener('mousedown', startDrawing);
+                        canvas.addEventListener('mousemove', draw);
+                        canvas.addEventListener('mouseup', endDrawing);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+            
+            // Redraw image
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0);
+                
+                // Draw current selection
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+            };
+            img.src = document.getElementById('imageInput').files[0] ? 
+                     URL.createObjectURL(document.getElementById('imageInput').files[0]) : '';
+        }
+
+        function endDrawing(e) {
+            if (!isDrawing) return;
+            
+            isDrawing = false;
+            const rect = canvas.getBoundingClientRect();
+            const endX = e.clientX - rect.left;
+            const endY = e.clientY - rect.top;
+            
+            // Normalizza coordinate (x1,y1 = top-left, x2,y2 = bottom-right)
+            const x1 = Math.min(startX, endX);
+            const y1 = Math.min(startY, endY);
+            const x2 = Math.max(startX, endX);
+            const y2 = Math.max(startY, endY);
+            
+            // Aggiungi coordinate
+            coordinates.push({
+                id: coordinates.length + 1,
+                x1: Math.round(x1),
+                y1: Math.round(y1),
+                x2: Math.round(x2),
+                y2: Math.round(y2)
+            });
+            
+            updateCoordinateList();
+            addHighlight(x1, y1, x2, y2, coordinates.length);
+        }
+
+        function updateCoordinateList() {
+            const list = document.getElementById('coordinateList');
+            list.innerHTML = '';
+            
+            coordinates.forEach((coord, index) => {
+                const div = document.createElement('div');
+                div.className = 'coordinate-box';
+                div.innerHTML = `
+                    <strong>Area ${coord.id}</strong><br>
+                    x1: ${coord.x1}, y1: ${coord.y1}<br>
+                    x2: ${coord.x2}, y2: ${coord.y2}<br>
+                    <button onclick="removeCoordinate(${index})" style="background: #dc3545; font-size: 12px; padding: 5px 10px;">❌</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function addHighlight(x1, y1, x2, y2, areaId) {
+            const highlights = document.getElementById('highlights');
+            const highlight = document.createElement('div');
+            highlight.className = 'highlight';
+            highlight.style.left = x1 + 'px';
+            highlight.style.top = y1 + 'px';
+            highlight.style.width = (x2 - x1) + 'px';
+            highlight.style.height = (y2 - y1) + 'px';
+            highlight.style.backgroundColor = `hsl(${areaId * 60}, 70%, 50%, 0.3)`;
+            highlight.style.border = `2px solid hsl(${areaId * 60}, 70%, 50%)`;
+            highlight.innerHTML = `<span style="position: absolute; top: -20px; left: 0; background: white; padding: 2px 5px; font-size: 12px;">Area ${areaId}</span>`;
+            highlights.appendChild(highlight);
+        }
+
+        function removeCoordinate(index) {
+            coordinates.splice(index, 1);
+            updateCoordinateList();
+            document.getElementById('highlights').innerHTML = '';
+            coordinates.forEach((coord, i) => {
+                addHighlight(coord.x1, coord.y1, coord.x2, coord.y2, i + 1);
+            });
+        }
+
+        function copyCoordinates() {
+            const output = coordinates.map(coord => 
+                `'area_${coord.id}' => ['x1' => ${coord.x1}, 'y1' => ${coord.y1}, 'x2' => ${coord.x2}, 'y2' => ${coord.y2}]`
+            ).join(",\n");
+            
+            const fullOutput = `private \$originalAreas = [\n    ${output}\n];`;
+            
+            document.getElementById('output').innerHTML = `
+                <h4>📋 Coordinate per PHP:</h4>
+                <textarea style="width: 100%; height: 150px; font-family: monospace;">${fullOutput}</textarea>
+            `;
+        }
+
+        function clearAll() {
+            coordinates = [];
+            updateCoordinateList();
+            document.getElementById('highlights').innerHTML = '';
+            document.getElementById('output').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

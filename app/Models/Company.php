@@ -48,6 +48,12 @@ class Company extends Model
         'notes',
         'codice_fiscale',
         'rea_ufficio',
+        'coefficiente',
+        'startup',
+        'fatturato_annuale',
+        'inps_type',
+        'agevolazione_inps',
+
         'rea_numero',
         'rea_stato_liquidazione',
         'agevolazione_inps',
@@ -246,5 +252,71 @@ class Company extends Model
     public function defaultStripeAccount()
     {
         return $this->hasOne(StripeAccount::class)->where('default', true);
+    }
+
+    public function taxes()
+    {
+        return $this->hasMany(Tax::class);
+    }
+
+    public function f24s()
+    {
+        return $this->hasMany(F24::class);
+    }
+
+    /**
+     * Verifica se la company è in regime forfettario
+     */
+    public function isRegimeForfettario(): bool
+    {
+        return $this->regime_fiscale === 'RF19';
+    }
+
+    /**
+     * Recupera i record di tasse per un anno specifico
+     */
+    public function getTaxesByYear($taxYear)
+    {
+        return $this->taxes()->where('tax_year', $taxYear)->get();
+    }
+
+    /**
+     * Verifica se ci sono record di tasse precedenti
+     */
+    public function hasPreviousTaxRecords(): bool
+    {
+        return $this->taxes()->exists();
+    }
+
+    /**
+     * Verifica se la company è in gestione separata
+     */
+    public function isGestioneSeparata(): bool
+    {
+        return $this->inps_type === 'GESTIONE_SEPARATA';
+    }
+
+    /**
+     * Verifica se la company è commerciante
+     */
+    public function isCommerciante(): bool
+    {
+        return $this->inps_type === 'COMMERCIANTI';
+    }
+
+    /**
+     * Verifica se la company è artigiana
+     */
+    public function isArtigiana(): bool
+    {
+        return $this->inps_type === 'ARTIGIANI';
+    }
+
+    /**
+     * Verifica se la company è iscritta alla CCIAA
+     */
+    public function isIscritta_CCIAA(): bool
+    {
+        return !empty($this->rea_ufficio);
     }
 }

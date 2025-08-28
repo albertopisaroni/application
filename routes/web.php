@@ -20,6 +20,8 @@ use App\Http\Controllers\QrController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\OpenBankingController;
 use App\Http\Controllers\SpeseController;
+use App\Http\Controllers\TaxController;
+use App\Http\Controllers\F24Controller;
 
 
 
@@ -94,6 +96,23 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
 
         // SPESE
         Route::get('/spese', [SpeseController::class, 'list'])->name('spese.lista');
+        Route::get('/tasse', [TaxController::class, 'list'])->name('tasse.lista');
+
+        // F24
+        Route::get('/f24', [F24Controller::class, 'index'])->name('f24.index');
+        Route::get('/f24/{f24}', [F24Controller::class, 'show'])->name('f24.show');
+        Route::get('/f24/{f24}/download', [F24Controller::class, 'download'])->name('f24.download');
+        Route::post('/f24/{f24}/mark-as-paid', [F24Controller::class, 'markAsPaid'])->name('f24.mark-as-paid');
+        Route::delete('/f24/{f24}', [F24Controller::class, 'destroy'])->name('f24.destroy');
+        
+        // F24 Ricevute
+        Route::post('/f24/{f24}/receipt', [F24Controller::class, 'uploadReceipt'])->name('f24.upload-receipt');
+        Route::get('/f24/{f24}/receipt', [F24Controller::class, 'downloadReceipt'])->name('f24.download-receipt');
+        Route::delete('/f24/{f24}/receipt', [F24Controller::class, 'deleteReceipt'])->name('f24.delete-receipt');
+        
+        // API F24
+        Route::get('/api/f24', [F24Controller::class, 'apiIndex'])->name('f24.api.index');
+        Route::get('/api/f24/{f24}', [F24Controller::class, 'apiShow'])->name('f24.api.show');
 
         Route::post('/update-company', function (Request $request) {
             session(['current_company_id' => $request->input('company_id')]);

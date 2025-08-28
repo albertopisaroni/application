@@ -1,36 +1,6 @@
-@php
-    $path = request()->path();
+<div>
 
-    $selected = match (true) {
-        (str_starts_with($path, 'fatture') || str_starts_with($path, 'abbonamenti') || str_starts_with($path, 'note-di-credito') || str_starts_with($path, 'autofatture')) => 'fatture',
-        str_starts_with($path, 'contatti') => 'contatti',
-        str_starts_with($path, 'email') => 'email',
-        str_starts_with($path, 'spese') => 'spese',
-        str_starts_with($path, 'tasse') => 'tasse',
-        str_starts_with($path, 'documenti') => 'documenti',
-        str_starts_with($path, 'automazioni') => 'automazioni',
-        str_starts_with($path, 'admin') => 'admin',
-        default => 'dashboard',
-    };
 
-    $mainSidebar = ($selected !== 'dashboard' && $selected !== 'spese') ? 'true' : 'false';
-    $secondarySidebar = ($selected !== 'dashboard' && $selected !== 'spese') ? 'true' : 'false';
-@endphp
-
-<div x-data="{ 
-        selected: '{{ $selected }}', 
-        mainSidebar: {{ $mainSidebar }}, 
-        secondarySidebar: {{ $secondarySidebar }},
-        animateBars: false,
-        tooltipText: '', 
-        tooltipX: 0, 
-        tooltipY: 0, 
-        showTooltip: false,
-        tooltipTimeout: null,
-        mobileMenuOpen: false,
-        mobileSubmenuOpen: false
-    }"
-    x-effect="document.body.style.overflow = mobileMenuOpen && window.innerWidth < 1024 ? 'hidden' : 'auto'">
     
     <!-- Mobile Menu Toggle Button -->
     <button
@@ -106,18 +76,7 @@
                             clearTimeout(tooltipTimeout);
                             showTooltip = false;
                         "
-                        @click.prevent="
-                            selected = 'admin';
-                            if (window.innerWidth >= 1024) {
-                                mainSidebar = true;
-                                secondarySidebar = true;
-                            } else {
-                                mobileSubmenuOpen = true;
-                            }
-                            showTooltip = false;
-                            animateBars = true;
-                            setTimeout(() => animateBars = false, 500);
-                        "
+                                            @click.prevent="handleAdminClick()"
                         class="hover:scale-1015 transform flex space-x-2 items-center py-1.5 text-[#050505] px-1.5 rounded hover:border-[#f5f5f5] mb-2 hover:bg-[#f5f5f5] text-[14px] border transition duration-200 ease-in"
                         :class="selected === 'admin' ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent'">
 
@@ -148,34 +107,7 @@
                         clearTimeout(tooltipTimeout);
                         showTooltip = false;
                     "
-                    @click.prevent="
-                        showTooltip = false;
-                        
-                        // Non navigare se siamo già sulla dashboard
-                        if (window.location.pathname === '/') {
-                            if (window.innerWidth < 1024) {
-                                mobileMenuOpen = false;
-                            }
-                            return;
-                        }
-                        
-                        // Solo se non siamo sulla dashboard, naviga
-                        selected = 'dashboard'; 
-                        if (window.innerWidth >= 1024) {
-                            mainSidebar = false; 
-                            secondarySidebar = false; 
-                        } else {
-                            mobileSubmenuOpen = false;
-                        }
-                        animateBars = true; 
-                        setTimeout(() => {
-                            Livewire.navigate('/');
-                            if (window.innerWidth < 1024) {
-                                mobileMenuOpen = false;
-                            }
-                            animateBars = false;
-                        }, 200);
-                    "
+                    @click.prevent="handleDashboardClick()"
                     class="hover:scale-1015 transform flex items-center space-x-2 text-[#050505] py-1.5 px-1.5 rounded hover:border-[#f5f5f5] hover:bg-[#f5f5f5] text-[14px] !mb-5 border transition duration-200 ease-in"
                     :class="selected === 'dashboard' ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent'">
                     
@@ -197,7 +129,7 @@
                         { name: 'Spese', value: 'spese', icon: 'spese' },
                         { name: 'Automazioni', value: 'automazioni', icon: 'automazioni', comingSoon: true },
                         { name: 'PEC', value: 'email', icon: 'mail', comingSoon: true },
-                        { name: 'Tasse e Tributi', value: 'tasse', icon: 'tasse', comingSoon: true },
+                        { name: 'Tasse e Tributi', value: 'tasse', icon: 'tasse' },
                         { name: 'Documenti', value: 'documenti', icon: 'documenti' },
                         { name: 'Contatti', value: 'contatti', icon: 'contatti' }
                     ]" :key="item.value">
@@ -218,47 +150,7 @@
                                 clearTimeout(tooltipTimeout);
                                 showTooltip = false;
                             "
-                            @click.prevent="
-                                if (!item.comingSoon) {
-                                    // Spese si comporta come Dashboard - navigazione diretta
-                                    if (item.value === 'spese') {
-                                        // Non navigare se siamo già su spese (controlla URL)
-                                        if (window.location.pathname.startsWith('/spese')) {
-                                            if (window.innerWidth < 1024) {
-                                                mobileMenuOpen = false;
-                                            }
-                                            return;
-                                        }
-                                        
-                                        selected = item.value;
-                                        if (window.innerWidth >= 1024) {
-                                            mainSidebar = false; 
-                                            secondarySidebar = false; 
-                                        } else {
-                                            mobileSubmenuOpen = false;
-                                        }
-                                        animateBars = true;
-                                        setTimeout(() => {
-                                            Livewire.navigate('/spese');
-                                            if (window.innerWidth < 1024) {
-                                                mobileMenuOpen = false;
-                                            }
-                                            animateBars = false;
-                                        }, 200);
-                                    } else {
-                                        // Comportamento normale per gli altri menu
-                                        selected = item.value;
-                                        if (window.innerWidth >= 1024) {
-                                            mainSidebar = true;
-                                            secondarySidebar = true;
-                                        } else if (item.value !== 'dashboard') {
-                                            mobileSubmenuOpen = true;
-                                        }
-                                        animateBars = true;
-                                        setTimeout(() => animateBars = false, 500);
-                                    }
-                                }
-                            "
+                            @click.prevent="handleMenuItemClick(item)"
                             class="hover:scale-1015 transform flex items-center py-1.5 px-1.5 rounded text-[14px] border transition duration-200 ease-in relative"
                             :class="[
                                 selected === item.value ? 'text-[#050505] border-[#f5f5f5] bg-[#f5f5f5]' : 'text-[#050505] border-transparent',
@@ -549,6 +441,7 @@
 
     <!-- Sidebar secondaria (Desktop only) -->
         <div
+            x-show="secondarySidebar"
             :class="secondarySidebar ? 'lg:!left-[65px] left-0' : '' "
             class="hidden lg:block w-full lg:w-[250px] h-full absolute left-0 transition-all duration-200 overflow-hidden lg:border-r border-[#E8E8E8] px-4 pt-16 lg:pt-8 pb-6 bg-white"
         >
