@@ -213,7 +213,7 @@
                             @endif
                             
                         </td>
-                        <td class="whitespace-nowrap py-4 px-4 text-gray-900 font-medium">{{ number_format(($subscription->price->unit_amount), 2, ',', '.') }} EUR</td>
+                        <td class="whitespace-nowrap py-4 px-4 text-gray-900 font-medium">{{ number_format(($subscription->price->unit_amount_eur), 2, ',', '.') }} EUR</td>
 
                         <td class="whitespace-nowrap py-4 px-4 text-gray-700">
                             {{ $subscription->price->product->name }}

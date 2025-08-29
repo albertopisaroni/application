@@ -95,8 +95,8 @@ class SubscriptionList extends Component
 
         // 4) Conta e somma
         $this->renewalsCount = $endRenewals->count() + $startRenewals->count();
-        $this->renewalsTotal = $endRenewals->sum('subscriptions.final_amount')
-                            + $startRenewals->sum('subscriptions.final_amount');
+        $this->renewalsTotal = ($endRenewals->sum('subscriptions.final_amount')
+                            + $startRenewals->sum('subscriptions.final_amount')) / 100; // Converti da centesimi a euro
 
         // 2) activeCount + MRR in un’unica query
         $now = Carbon::now();
@@ -113,7 +113,7 @@ class SubscriptionList extends Component
             ->first();
 
         $this->activeCount = (int) $metriche->activeCount;
-        $this->mrr         = $metriche->totalFinal / 12;
+        $this->mrr         = ($metriche->totalFinal / 100) / 12; // Converti da centesimi a euro, poi dividi per 12 mesi
 
         // 3) Lista paginata (applica anche ordinamenti e filtri se li hai)
         

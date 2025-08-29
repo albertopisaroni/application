@@ -19,4 +19,12 @@ class Price extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    /**
+     * Converte unit_amount da centesimi a euro per la visualizzazione
+     */
+    public function getUnitAmountEurAttribute(): float
+    {
+        return $this->unit_amount / 100;
+    }
 }

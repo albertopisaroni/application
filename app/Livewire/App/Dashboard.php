@@ -67,7 +67,7 @@ class Dashboard extends Component
             $q->where('company_id', $companyId)
         )
         ->whereYear('start_date', $year)
-        ->sum('final_amount');
+        ->sum('final_amount') / 100; // Converti da centesimi a euro
 
     // 3) Totali mensili reali Abbonamenti (nuovi)
     $this->subscriptionTotals = collect(range(1, 12))
@@ -76,7 +76,7 @@ class Dashboard extends Component
                 )
                 ->whereYear('start_date', $year)
                 ->whereMonth('start_date', $m)
-                ->sum('final_amount')
+                ->sum('final_amount') / 100 // Converti da centesimi a euro
         )
         ->toArray();
 
@@ -87,7 +87,7 @@ class Dashboard extends Component
                 )
                 ->whereYear('current_period_end', $year)
                 ->whereMonth('current_period_end', $m)
-                ->sum('final_amount')
+                ->sum('final_amount') / 100 // Converti da centesimi a euro
         )
         ->toArray();
 
@@ -99,7 +99,7 @@ class Dashboard extends Component
                 ? ($this->subscriptionTotals[$m - 1] + $renewalTotals[$m - 1])
                 // mesi futuri: somma programmata di nuovi + rinnovi
                 : (
-                    Subscription::whereHas('client', fn($q) => 
+                    (Subscription::whereHas('client', fn($q) => 
                         $q->where('company_id', $companyId)
                     )
                     ->whereYear('start_date', $year)
@@ -111,7 +111,7 @@ class Dashboard extends Component
                     )
                     ->whereYear('current_period_end', $year)
                     ->whereMonth('current_period_end', $m)
-                    ->sum('final_amount')
+                    ->sum('final_amount')) / 100 // Converti da centesimi a euro
                 )
         )
         ->toArray();

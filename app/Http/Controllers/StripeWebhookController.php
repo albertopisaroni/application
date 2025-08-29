@@ -188,7 +188,7 @@ class StripeWebhookController extends Controller
         $subscriptionItem = $subscription['items']['data'][0];
         $price = $subscriptionItem['price'];
         $quantity = $subscriptionItem['quantity'] ?? 1;
-        $unitAmount = ($price['unit_amount'] ?? 0) / 100;
+        $unitAmount = $price['unit_amount'] ?? 0; // Mantieni in centesimi
         $subtotal = $unitAmount * $quantity;
 
         // Calcola discount se presente
@@ -214,10 +214,10 @@ class StripeWebhookController extends Controller
                 : null,
             'stripe_account_id' => $stripeAccount->id,
             'quantity' => $quantity,
-            'unit_amount' => $unitAmount,
-            'subtotal_amount' => $subtotal,
-            'discount_amount' => $discountAmount,
-            'final_amount' => $finalAmount,
+            'unit_amount' => $unitAmount, // centesimi
+            'subtotal_amount' => $subtotal, // centesimi
+            'discount_amount' => $discountAmount, // centesimi
+            'final_amount' => $finalAmount, // centesimi
         ]);
 
         Log::info("Subscription processed successfully", ['subscription_id' => $subscription['id']]);
@@ -266,7 +266,7 @@ class StripeWebhookController extends Controller
                 }
             }
 
-            return $discountAmount / 100; // Converte da centesimi
+            return $discountAmount; // Mantieni in centesimi
         } catch (\Exception $e) {
             Log::error("Error calculating subscription discounts", [
                 'subscription_id' => $subscription['id'],
@@ -316,7 +316,7 @@ class StripeWebhookController extends Controller
             ['stripe_price_id' => $price['id']],
             [
                 'product_id' => $product->id,
-                'unit_amount' => ($price['unit_amount'] ?? 0) / 100,
+                'unit_amount' => $price['unit_amount'] ?? 0, // Mantieni in centesimi
                 'currency' => $price['currency'],
                 'interval' => $price['recurring']['interval'] ?? null,
                 'active' => $price['active'],

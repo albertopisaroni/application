@@ -116,7 +116,7 @@ class StripeSyncCommand extends Command
                     ['stripe_price_id' => $price->id],
                     [
                         'product_id'  => $p->id,
-                        'unit_amount' => $price->unit_amount / 100,
+                        'unit_amount' => $price->unit_amount, // Mantieni in centesimi
                         'currency'    => $price->currency,
                         'interval'    => $price->recurring->interval ?? null,
                         'active'      => $price->active,
@@ -168,11 +168,11 @@ class StripeSyncCommand extends Command
                 $subscriptionItem = $subscription->items->data[0];
                 $price = $subscriptionItem->price;
                 $quantity = $subscriptionItem->quantity ?? 1;
-                $unitAmount = $price->unit_amount/100 ?? 0;
+                $unitAmount = $price->unit_amount ?? 0; // Mantieni in centesimi
                 $subtotal = $unitAmount * $quantity;
 
-                $discountAmount = 0;
-                $finalAmount = $subtotal;
+                $discountAmount = 0; // In centesimi
+                $finalAmount = $subtotal; // In centesimi
 
                 $this->info('Sync abbonamento: ' . $subscription->id);
 
@@ -201,7 +201,7 @@ class StripeSyncCommand extends Command
                                 : null;
                         } while ($invoices->has_more);
                     
-                        // 2) Somma di tutti i total_discount_amounts su ogni fattura
+                        // 2) Somma di tutti i total_discount_amounts su ogni fattura (già in centesimi)
                         $discountAmount = 0;
                         foreach ($allInvoices as $inv) {
                             if (! empty($inv->total_discount_amounts)) {
@@ -211,16 +211,16 @@ class StripeSyncCommand extends Command
                             }
                         }
                     
-                        // 3) (Opzionale) se ti serve anche il totale fatturato
+                        // 3) (Opzionale) se ti serve anche il totale fatturato (già in centesimi)
                         $finalAmount = 0;
                         foreach ($allInvoices as $inv) {
                             $finalAmount += $inv->total ?? 0;
                         }
                     
-                        $this->info("Sync discounts for {$subscription->id}: {$discountAmount}");
+                        $this->info("Sync discounts for {$subscription->id}: {$discountAmount} centesimi");
                     }
                     
-                    $finalAmount = $subtotal - ($discountAmount/100);
+                    $finalAmount = $subtotal - $discountAmount; // Entrambi in centesimi
                     
 
                 } catch (\Exception $e) {
@@ -247,10 +247,10 @@ class StripeSyncCommand extends Command
                         : null,
                     'stripe_account_id'     => $stripeAccount->id,
                     'quantity'              => $quantity,
-                    'unit_amount'           => $unitAmount,
-                    'subtotal_amount'       => $subtotal,
-                    'discount_amount'       => $discountAmount/100,
-                    'final_amount'          => $finalAmount,
+                    'unit_amount'           => $unitAmount, // centesimi
+                    'subtotal_amount'       => $subtotal, // centesimi
+                    'discount_amount'       => $discountAmount, // centesimi
+                    'final_amount'          => $finalAmount, // centesimi
                 ]);
             }
 
