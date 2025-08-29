@@ -46,4 +46,44 @@ document.addEventListener('DOMContentLoaded', () => {;
     document.addEventListener('livewire:navigated', () => {
         initDashboardCharts();
     });
+
+    // Riassegna quando i dati del dashboard cambiano
+    document.addEventListener('livewire:update', () => {
+        if (window.location.pathname === '/') {
+            setTimeout(() => {
+                initDashboardCharts();
+            }, 100);
+        }
+    });
+
+    // Riassegna quando il componente viene aggiornato (Livewire v3)
+    document.addEventListener('livewire:updated', () => {
+        if (window.location.pathname === '/') {
+            setTimeout(() => {
+                initDashboardCharts();
+            }, 100);
+        }
+    });
+
+    // Riassegna quando il componente viene reidratato
+    document.addEventListener('livewire:rehydrated', () => {
+        if (window.location.pathname === '/') {
+            setTimeout(() => {
+                initDashboardCharts();
+            }, 100);
+        }
+    });
+
+    // Listener per l'evento charts-updated
+    document.addEventListener('charts-updated', () => {
+        console.log('Charts updated event received');
+        setTimeout(() => {
+            initDashboardCharts();
+        }, 100);
+    });
+
+    // Listener per evitare conflitti con Livewire
+    document.addEventListener('livewire:init', () => {
+        console.log('Livewire initialized');
+    });
 });

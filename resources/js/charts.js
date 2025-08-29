@@ -1,15 +1,38 @@
 import Chart from 'chart.js/auto';
 
 export function initDashboardCharts() {
+  console.log('Initializing dashboard charts...');
   
+  // Distruggi tutti i grafici esistenti prima di crearne di nuovi
+  if (window._invoiceChart) {
+    window._invoiceChart.destroy();
+    window._invoiceChart = null;
+  }
+  if (window._subscriptionChart) {
+    window._subscriptionChart.destroy();
+    window._subscriptionChart = null;
+  }
+  if (window._netChart) {
+    window._netChart.destroy();
+    window._netChart = null;
+  }
     
     // Invoice
     const invCanvas = document.getElementById('invoiceChart');
     if (invCanvas) {
       // prendi i dati dai data-attributes
-      const months = JSON.parse(invCanvas.dataset.months);
-      const invData = JSON.parse(invCanvas.dataset.invData);
-      const invSubtotal = JSON.parse(invCanvas.dataset.invSubtotal);
+      const months = JSON.parse(invCanvas.dataset.months || '[]');
+      const invData = JSON.parse(invCanvas.dataset.invData || '[]');
+      const invSubtotal = JSON.parse(invCanvas.dataset.invSubtotal || '[]');
+      const granularity = invCanvas.dataset.granularity || 'monthly';
+      
+      console.log('Invoice chart data:', { months, invData, invSubtotal, granularity });
+      
+      // Se non ci sono dati, non creare il grafico
+      if (months.length === 0) {
+        console.log('No data for invoice chart, skipping...');
+        return;
+      }
   
       // distruggi se esiste già
       if (window._invoiceChart) window._invoiceChart.destroy();
@@ -41,12 +64,34 @@ export function initDashboardCharts() {
             ]
           },
           options: {
-            scales: { y: { beginAtZero: true } },
+            scales: { 
+              y: { 
+                beginAtZero: false, // Permette valori negativi
+                ticks: {
+                  callback: function(value) {
+                    return '€' + value.toLocaleString('it-IT', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                  }
+                }
+              },
+              x: {
+                ticks: {
+                  maxRotation: granularity === 'weekly' ? 45 : 0,
+                  minRotation: granularity === 'weekly' ? 45 : 0
+                }
+              }
+            },
             plugins: { 
               legend: { 
                 display: true,
                 position: 'bottom'
-              } 
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': €' + context.parsed.y.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                  }
+                }
+              }
             }
           }
         }
@@ -57,9 +102,18 @@ export function initDashboardCharts() {
     // Subscription
     const subCanvas = document.getElementById('subscriptionChart');
     if (subCanvas) {
-    const months       = JSON.parse(subCanvas.dataset.months);
-    const subData      = JSON.parse(subCanvas.dataset.subData);
-    const forecastData = JSON.parse(subCanvas.dataset.subForecast);
+    const months       = JSON.parse(subCanvas.dataset.months || '[]');
+    const subData      = JSON.parse(subCanvas.dataset.subData || '[]');
+    const forecastData = JSON.parse(subCanvas.dataset.subForecast || '[]');
+    const granularity  = subCanvas.dataset.granularity || 'monthly';
+    
+    console.log('Subscription chart data:', { months, subData, forecastData, granularity });
+    
+    // Se non ci sono dati, non creare il grafico
+    if (months.length === 0) {
+      console.log('No data for subscription chart, skipping...');
+      return;
+    }
 
     if (window._subscriptionChart) window._subscriptionChart.destroy();
 
@@ -91,12 +145,32 @@ export function initDashboardCharts() {
         },
         options: {
             scales: {
-            y: { beginAtZero: true }
+            y: { 
+                beginAtZero: false, // Permette valori negativi
+                ticks: {
+                    callback: function(value) {
+                        return '€' + value.toLocaleString('it-IT', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                    }
+                }
+            },
+            x: {
+                ticks: {
+                    maxRotation: granularity === 'weekly' ? 45 : 0,
+                    minRotation: granularity === 'weekly' ? 45 : 0
+                }
+            }
             },
             plugins: {
             legend: { 
                 display: true,
                 position: 'bottom'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': €' + context.parsed.y.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    }
+                }
             }
             }
         }
@@ -109,6 +183,7 @@ export function initDashboardCharts() {
   if (ivaCanvas) {
     const months = JSON.parse(ivaCanvas.dataset.months);
     const ivaData = JSON.parse(ivaCanvas.dataset.ivaData);
+    const granularity = ivaCanvas.dataset.granularity || 'monthly';
 
     if (window._ivaChart) window._ivaChart.destroy();
 
@@ -127,8 +202,32 @@ export function initDashboardCharts() {
           }]
         },
         options: {
-          scales: { y: { beginAtZero: true } },
-          plugins: { legend: { display: false } }
+          scales: { 
+            y: { 
+              beginAtZero: false, // Permette valori negativi
+              ticks: {
+                callback: function(value) {
+                  return '€' + value.toLocaleString('it-IT', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                }
+              }
+            },
+            x: {
+              ticks: {
+                maxRotation: granularity === 'weekly' ? 45 : 0,
+                minRotation: granularity === 'weekly' ? 45 : 0
+              }
+            }
+          },
+          plugins: { 
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': €' + context.parsed.y.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+              }
+            }
+          }
         }
       }
     );
@@ -139,6 +238,7 @@ export function initDashboardCharts() {
   if (profitCanvas) {
     const months = JSON.parse(profitCanvas.dataset.months);
     const profitData = JSON.parse(profitCanvas.dataset.profitData);
+    const granularity = profitCanvas.dataset.granularity || 'monthly';
 
     if (window._profitChart) window._profitChart.destroy();
 
@@ -158,8 +258,32 @@ export function initDashboardCharts() {
           }]
         },
         options: {
-          scales: { y: { beginAtZero: false } },
-          plugins: { legend: { display: false } }
+          scales: { 
+            y: { 
+              beginAtZero: false,
+              ticks: {
+                callback: function(value) {
+                  return '€' + value.toLocaleString('it-IT', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                }
+              }
+            },
+            x: {
+              ticks: {
+                maxRotation: granularity === 'weekly' ? 45 : 0,
+                minRotation: granularity === 'weekly' ? 45 : 0
+              }
+            }
+          },
+          plugins: { 
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': €' + context.parsed.y.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+              }
+            }
+          }
         }
       }
     );
@@ -168,9 +292,18 @@ export function initDashboardCharts() {
   // Net Chart (Fatture - IVA - Spese)
   const netCanvas = document.getElementById('netChart');
   if (netCanvas) {
-    const months = JSON.parse(netCanvas.dataset.months);
-    const netData = JSON.parse(netCanvas.dataset.netData);
-    const netForecast = JSON.parse(netCanvas.dataset.netForecast);
+    const months = JSON.parse(netCanvas.dataset.months || '[]');
+    const netData = JSON.parse(netCanvas.dataset.netData || '[]');
+    const netForecast = JSON.parse(netCanvas.dataset.netForecast || '[]');
+    const granularity = netCanvas.dataset.granularity || 'monthly';
+    
+    console.log('Net chart data:', { months, netData, netForecast, granularity });
+    
+    // Se non ci sono dati, non creare il grafico
+    if (months.length === 0) {
+      console.log('No data for net chart, skipping...');
+      return;
+    }
 
     // distruggi se esiste già
     if (window._netChart) window._netChart.destroy();
@@ -202,12 +335,34 @@ export function initDashboardCharts() {
           ]
         },
         options: {
-          scales: { y: { beginAtZero: true } },
+          scales: { 
+            y: { 
+              beginAtZero: false, // Permette valori negativi per il netto
+              ticks: {
+                callback: function(value) {
+                  return '€' + value.toLocaleString('it-IT', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                }
+              }
+            },
+            x: {
+              ticks: {
+                maxRotation: granularity === 'weekly' ? 45 : 0,
+                minRotation: granularity === 'weekly' ? 45 : 0
+              }
+            }
+          },
           plugins: { 
             legend: { 
               display: true,
               position: 'bottom'
-            } 
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': €' + context.parsed.y.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+              }
+            }
           }
         }
       }
