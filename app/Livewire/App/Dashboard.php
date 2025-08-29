@@ -62,59 +62,39 @@ class Dashboard extends Component
             ->where('document_type', 'TD04')
             ->sum('total');
 
-    // 2c) Totale annuale abbonamenti
+    // 2c) Totale incassati per l'anno corrente
     $this->subscriptionYearTotal = Subscription::whereHas('client', fn($q) =>
             $q->where('company_id', $companyId)
         )
-        ->whereYear('start_date', $year)
-        ->sum('final_amount') / 100; // Converti da centesimi a euro
+        ->whereYear('current_period_start', $year) // Incassati nell'anno corrente
+        ->where('status', 'active')
+        ->sum('total_with_vat') / 100; // Converti da centesimi a euro
 
-    // 3) Totali mensili reali Abbonamenti (nuovi)
+    // 3) Totali mensili INCASSATI (periodi iniziati nell'anno corrente, mese per mese)
     $this->subscriptionTotals = collect(range(1, 12))
         ->map(fn($m) => Subscription::whereHas('client', fn($q) =>
                     $q->where('company_id', $companyId)
                 )
-                ->whereYear('start_date', $year)
-                ->whereMonth('start_date', $m)
-                ->sum('final_amount') / 100 // Converti da centesimi a euro
+                ->whereYear('current_period_start', $year) // Anno corrente
+                ->whereMonth('current_period_start', $m)
+                ->where('status', 'active') // Subscription attive (incassate)
+                ->sum('total_with_vat') / 100 // Converti da centesimi a euro
         )
         ->toArray();
 
-    // 4) Totali mensili reali Rinnovi (fine periodo)
+    // 4) Totali mensili PREVISTI (rinnovi di tutti gli anni, solo attive)
     $renewalTotals = collect(range(1, 12))
         ->map(fn($m) => Subscription::whereHas('client', fn($q) =>
                     $q->where('company_id', $companyId)
                 )
-                ->whereYear('current_period_end', $year)
-                ->whereMonth('current_period_end', $m)
-                ->sum('final_amount') / 100 // Converti da centesimi a euro
+                ->whereMonth('current_period_end', $m) // Tutti gli anni
+                ->whereIn('status', ['active', 'past_due']) // Solo subscription attive o in trial
+                ->sum('total_with_vat') / 100 // Converti da centesimi a euro
         )
         ->toArray();
 
-    // 5) Forecast mensile per le sottoscrizioni
-    $this->subscriptionForecast = collect(range(1, 12))
-        ->map(fn($m) => 
-            // fino al mese corrente: reale (nuovi + rinnovi)
-            $m <= $currentMonth
-                ? ($this->subscriptionTotals[$m - 1] + $renewalTotals[$m - 1])
-                // mesi futuri: somma programmata di nuovi + rinnovi
-                : (
-                    (Subscription::whereHas('client', fn($q) => 
-                        $q->where('company_id', $companyId)
-                    )
-                    ->whereYear('start_date', $year)
-                    ->whereMonth('start_date', $m)
-                    ->sum('final_amount')
-                    +
-                    Subscription::whereHas('client', fn($q) => 
-                        $q->where('company_id', $companyId)
-                    )
-                    ->whereYear('current_period_end', $year)
-                    ->whereMonth('current_period_end', $m)
-                    ->sum('final_amount')) / 100 // Converti da centesimi a euro
-                )
-        )
-        ->toArray();
+    // 5) Forecast mensile per le sottoscrizioni (sempre pattern di tutti gli anni)
+    $this->subscriptionForecast = $renewalTotals;
 
     // 6) Totale previsioni annuali abbonamenti (calcolato dopo aver popolato l'array)
     $this->subscriptionForecastTotal = array_sum($this->subscriptionForecast);

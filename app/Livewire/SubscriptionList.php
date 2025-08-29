@@ -77,26 +77,21 @@ class SubscriptionList extends Component
             $q->where('company_id', $companyId)
         );
 
-        // 1) Rinnovi questo mese (sia nuovi start_date che rinnovi end_date)
-        $startOfMonth = Carbon::now()->startOfMonth();
-        $endOfMonth   = Carbon::now()->endOfMonth();
+        // 1) Rinnovi di questo mese (di tutti gli anni)
+        $currentMonth = Carbon::now()->month;
 
         // 1) Prepara la query base con JOIN su clients
         $subQuery = Subscription::join('clients', 'subscriptions.client_id', '=', 'clients.id')
             ->where('clients.company_id', $companyId);
 
-        // 2) Rinnovi che finiscono questo mese
+        // 2) Solo rinnovi che finiscono in questo mese (di tutti gli anni, attive o past_due)
         $endRenewals = (clone $subQuery)
-            ->whereBetween('subscriptions.current_period_end', [$startOfMonth, $endOfMonth]);
+            ->whereMonth('subscriptions.current_period_end', $currentMonth)
+            ->whereIn('subscriptions.status', ['active', 'past_due']);
 
-        // 3) Rinnovi che partono questo mese
-        $startRenewals = (clone $subQuery)
-            ->whereBetween('subscriptions.start_date', [$startOfMonth, $endOfMonth]);
-
-        // 4) Conta e somma
-        $this->renewalsCount = $endRenewals->count() + $startRenewals->count();
-        $this->renewalsTotal = ($endRenewals->sum('subscriptions.final_amount')
-                            + $startRenewals->sum('subscriptions.final_amount')) / 100; // Converti da centesimi a euro
+        // 4) Conta e somma solo i rinnovi
+        $this->renewalsCount = $endRenewals->count();
+        $this->renewalsTotal = $endRenewals->sum('subscriptions.total_with_vat') / 100; // Converti da centesimi a euro
 
         // 2) activeCount + MRR in un’unica query
         $now = Carbon::now();
@@ -108,7 +103,7 @@ class SubscriptionList extends Component
             ->where('current_period_end','>=',$now)
             ->selectRaw('
                 COUNT(*)           as activeCount,
-                COALESCE(SUM(final_amount),0)  as totalFinal
+                COALESCE(SUM(total_with_vat),0)  as totalFinal
             ')
             ->first();
 

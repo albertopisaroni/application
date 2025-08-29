@@ -12,6 +12,7 @@ class Subscription extends Model
         'price_id',
         'status',
         'start_date',
+        'current_period_start',
         'current_period_end',
         'company_id',
         'stripe_account_id',
@@ -20,10 +21,17 @@ class Subscription extends Model
         'subtotal_amount',
         'discount_amount',
         'final_amount',
+        'vat_rate',
+        'vat_amount',
+        'total_with_vat',
+        'final_amount_net',
+        'total_with_vat_net',
+        'stripe_fees',
     ];
 
     protected $casts = [
         'start_date'      => 'datetime',
+        'current_period_start' => 'datetime',
         'current_period_end' => 'date',
     ];
 
@@ -45,7 +53,7 @@ class Subscription extends Model
     public function getNettoPostTaxAttribute(): float
     {
         $company           = $this->client->company;
-        $totale            = $this->final_amount/100;
+        $totale            = $this->total_with_vat/100;
         
         if ($totale <= 0) return 0.00;
     

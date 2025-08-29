@@ -221,11 +221,94 @@ class StripeSyncCommand extends Command
                     }
                     
                     $finalAmount = $subtotal - $discountAmount; // Entrambi in centesimi
+                
+                // Ottieni IVA da Stripe (dalle fatture)
+                $vatRate = 0.00;
+                $vatAmount = 0;
+                $totalWithVat = $finalAmount;
+                
+                if (!empty($subscription->latest_invoice)) {
+                    // Prendi l'ultima fattura per ottenere i dati IVA
+                    try {
+                        $latestInvoice = $stripe->invoices->retrieve(
+                            $subscription->latest_invoice,
+                            [],
+                            ['stripe_account' => $stripeAccount->stripe_user_id]
+                        );
+                        
+                        // Usa i campi corretti di Stripe per l'IVA
+                        if (!empty($latestInvoice->total_taxes)) {
+                            foreach ($latestInvoice->total_taxes as $tax) {
+                                $vatAmount += $tax['amount'] ?? 0;
+                                
+                                // Recupera la percentuale dal tax_rate se disponibile
+                                if (isset($tax['tax_rate_details']['tax_rate'])) {
+                                    try {
+                                        $taxRateId = $tax['tax_rate_details']['tax_rate'];
+                                        $taxRate = $stripe->taxRates->retrieve(
+                                            $taxRateId,
+                                            [],
+                                            ['stripe_account' => $stripeAccount->stripe_user_id]
+                                        );
+                                        $vatRate = $taxRate->percentage ?? 0;
+                                    } catch (\Exception $taxE) {
+                                        // Fallback: calcola dalla proporzione
+                                        if ($latestInvoice->subtotal > 0) {
+                                            $vatRate = round(($vatAmount / $latestInvoice->subtotal) * 100, 2);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Fallback: usa la differenza total - subtotal
+                        if ($vatAmount == 0 && $latestInvoice->total && $latestInvoice->subtotal) {
+                            $vatAmount = $latestInvoice->total - $latestInvoice->subtotal;
+                            if ($latestInvoice->subtotal > 0 && $vatAmount > 0) {
+                                $vatRate = round(($vatAmount / $latestInvoice->subtotal) * 100, 2);
+                            }
+                        }
+                        
+                        // Calcola total with VAT solo se ha senso
+                        if ($vatRate > 0 && $vatAmount > 0) {
+                            $totalWithVat = $finalAmount + $vatAmount;
+                        } else {
+                            // Nessuna IVA o valori inconsistenti (inclusi valori negativi)
+                            $vatRate = 0.00;
+                            $vatAmount = 0;
+                            $totalWithVat = $finalAmount;
+                        }
+                        
+                        // Assicurati che vat_amount non sia mai negativo (unsignedInteger)
+                        if ($vatAmount < 0) {
+                            $vatAmount = 0;
+                            $vatRate = 0.00;
+                            $totalWithVat = $finalAmount;
+                        }
+                        
+                        // Calcola commissioni Stripe per questa subscription
+                        $stripeFees = $this->calculateStripeFees($stripe, $subscription, $stripeAccount);
+                        $finalAmountNet = max(0, $finalAmount - $stripeFees);
+                        $totalWithVatNet = max(0, $totalWithVat - $stripeFees);
+                        
+                    } catch (\Exception $e) {
+                        // Fallback: nessuna IVA
+                        $this->warn("Errore nel recuperare IVA per {$subscription->id}: " . $e->getMessage());
+                    }
+                }
                     
 
                 } catch (\Exception $e) {
                     // fallback: usa importo pieno
                     $finalAmount = $subtotal;
+                    $vatRate = 0.00;
+                    $vatAmount = 0;
+                    $totalWithVat = $finalAmount;
+                    
+                    // Calcola commissioni anche nel fallback
+                    $stripeFees = $this->calculateStripeFees($stripe, $subscription, $stripeAccount);
+                    $finalAmountNet = max(0, $finalAmount - $stripeFees);
+                    $totalWithVatNet = max(0, $totalWithVat - $stripeFees);
                 }
 
                 $priceId = Cache::remember(
@@ -240,7 +323,12 @@ class StripeSyncCommand extends Command
                     'client_id'             => $client->id,
                     'price_id'              => $priceId,
                     'status'                => $subscription->status,
+                    'company_id'            => $stripeAccount->company_id,
                     'start_date'            => Carbon::createFromTimestampUTC($subscription->start_date)->setTimezone('Europe/Rome'),
+                    'current_period_start'  => isset($subscriptionItem->current_period_start)
+                        ? Carbon::createFromTimestampUTC($subscriptionItem->current_period_start)
+                        ->setTimezone('Europe/Rome')
+                        : null,
                     'current_period_end'    => isset($subscriptionItem->current_period_end)
                         ? Carbon::createFromTimestampUTC($subscriptionItem->current_period_end)
                         ->setTimezone('Europe/Rome')
@@ -250,12 +338,48 @@ class StripeSyncCommand extends Command
                     'unit_amount'           => $unitAmount, // centesimi
                     'subtotal_amount'       => $subtotal, // centesimi
                     'discount_amount'       => $discountAmount, // centesimi
-                    'final_amount'          => $finalAmount, // centesimi
+                    'final_amount'          => $finalAmount, // centesimi (senza IVA)
+                    'vat_rate'              => $vatRate, // percentuale
+                    'vat_amount'            => $vatAmount, // centesimi
+                    'total_with_vat'        => $totalWithVat, // centesimi (con IVA)
+                    'stripe_fees'           => $stripeFees, // centesimi
+                    'final_amount_net'      => $finalAmountNet, // centesimi (netto)
+                    'total_with_vat_net'    => $totalWithVatNet, // centesimi (netto con IVA)
                 ]);
             }
 
             $startingAfter = count($subscriptions->data) ? end($subscriptions->data)->id : null;
         } while ($subscriptions->has_more);
+    }
+
+    /**
+     * Calcola le commissioni Stripe totali per una subscription
+     */
+    protected function calculateStripeFees($stripe, $subscription, $stripeAccount)
+    {
+        try {
+            // Per ora usiamo una stima semplice basata sull'importo
+            // TODO: Implementare calcolo preciso quando avremo più dati
+            
+            $amount = $subscription->items->data[0]->price->unit_amount ?? 0;
+            $quantity = $subscription->items->data[0]->quantity ?? 1;
+            $totalAmount = $amount * $quantity;
+            
+            // Stima commissioni Stripe: 2.9% + €0.25
+            $estimatedFees = round($totalAmount * 0.029) + 25;
+            
+            return max(0, $estimatedFees);
+            
+        } catch (\Exception $e) {
+            // Fallback: stima le commissioni basata sull'importo totale
+            $amount = $subscription->items->data[0]->price->unit_amount ?? 0;
+            $quantity = $subscription->items->data[0]->quantity ?? 1;
+            $totalAmount = $amount * $quantity;
+            
+            // Stima: 2.9% + €0.25 per transazione
+            $estimatedFees = round($totalAmount * 0.029) + 25; // 2.9% + 25 centesimi
+            return max(0, $estimatedFees);
+        }
     }
 
     // protected function syncTransactions($stripe, $stripeAccount)
