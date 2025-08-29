@@ -11,6 +11,7 @@ class ChatGptF24ParserService
     private string $apiKey;
     private string $model = 'gpt-4o';
     private string $tempDir;
+    private array $uploadedFileIds = [];
 
     public function __construct()
     {
@@ -35,6 +36,9 @@ class ChatGptF24ParserService
                 'content_length' => strlen($pdfContent),
                 'temp_dir' => $this->tempDir
             ]);
+            
+            // Reset dell'array dei file caricati per questa sessione
+            $this->uploadedFileIds = [];
 
             // 1. Salva il PDF temporaneamente
             $pdfPath = $this->tempDir . '/input.pdf';
@@ -51,7 +55,8 @@ class ChatGptF24ParserService
             
             Log::info("✅ ChatGptF24ParserService completato", [
                 'filename' => $filename,
-                'tax_records_count' => count($taxRecords)
+                'tax_records_count' => count($taxRecords),
+                'uploaded_files_count' => count($this->uploadedFileIds)
             ]);
 
             return $taxRecords;
@@ -189,6 +194,9 @@ class ChatGptF24ParserService
                     'filename' => basename($pdfPath)
                 ]);
                 
+                // Traccia il file caricato per la pulizia successiva
+                $this->uploadedFileIds[] = $fileId;
+                
                 return $fileId;
                 
             } catch (\Exception $e) {
@@ -226,7 +234,7 @@ Sei un parser fiscale esperto. Analizza il PDF F24 allegato e estrai TUTTI i dat
 1. **ESTRAI TUTTI I DATI VISIBILI**: Non saltare nessuna riga con dati
 2. **SEZIONI**: Rispetta le sezioni del documento (ERARIO, INPS, IMU, REGIONI)
 3. **CODICI TRIBUTO**: Estrai sempre il codice tributo/causale
-4. **IMPORTI**: Estrai sempre gli importi (converti virgola in punto: 747,74 → 747.74)
+4. **IMPORTI**: Estrai sempre gli importi PRESERVANDO TUTTI I DECIMALI (converti virgola in punto: 962,64 → 962.64, NON 962.00)
 5. **DATE**: Estrai date di scadenza e periodi di riferimento
 6. **MATRICOLE**: Estrai matricole INPS quando presenti
 
@@ -265,8 +273,17 @@ Sei un parser fiscale esperto. Analizza il PDF F24 allegato e estrai TUTTI i dat
 
 📝 ESEMPIO COMPLETO (se vedi questi dati nell'F24):
 - Data scadenza: "SCADENZA: 16/02/2026" → "due_date": "2026-02-16"
-- Sezione INPS con: codice sede "5600", causale "CF", matricola "21540560251104882", periodo "01 2025" a "12 2025", importo "747,74"
-→ "inps": [{"codice_sede": "5600", "causale": "CF", "matricola": "21540560251104882", "periodo_da": "01 2025", "periodo_a": "12 2025", "importo_a_debito": 747.74, "importo_a_credito": 0}]
+- Sezione INPS con: codice sede "5600", causale "CF", matricola "21540560251104882", periodo "01 2025" a "12 2025", importo "962,64"
+→ "inps": [{"codice_sede": "5600", "causale": "CF", "matricola": "21540560251104882", "periodo_da": "01 2025", "periodo_a": "12 2025", "importo_a_debito": 962.64, "importo_a_credito": 0}]
+
+🚨 ATTENZIONE DECIMALI: Se vedi "962,64" scrivi 962.64 (NON 962.00 o 962)
+
+💰 REGOLE IMPORTI CRITICHE:
+- "962,64" → 962.64 (mantieni .64)
+- "1.234,56" → 1234.56 (rimuovi punto migliaia, mantieni decimali)
+- "100,00" → 100.00 (mantieni .00)
+- "50" → 50 (se non ci sono decimali nel PDF)
+- MAI arrotondare o perdere i centesimi!
 
 📊 STRUTTURA JSON DA RISPETTARE:
 
@@ -327,6 +344,9 @@ PROMPT;
             // Correggi automaticamente eventuali errori di classificazione
             $data = $this->correctClassificationErrors($data);
             
+            // Verifica e logga gli importi per debug
+            $data = $this->validateAndLogAmounts($data);
+            
             return $data;
             
         } catch (\JsonException $e) {
@@ -343,8 +363,17 @@ PROMPT;
      */
     private function convertToTaxRecords(array $parsedData): array
     {
+        // Se la due_date non è presente o è null, imposta la data di oggi
+        $dueDate = $parsedData['due_date'] ?? null;
+        if (empty($dueDate) || $dueDate === null) {
+            $dueDate = now()->format('Y-m-d');
+            Log::info("📅 Due date non trovata nell'F24, impostata a oggi", [
+                'due_date_set' => $dueDate
+            ]);
+        }
+        
         $taxRecords = [
-            'due_date' => $parsedData['due_date'] ?? null,
+            'due_date' => $dueDate,
             'records' => []
         ];
         
@@ -498,6 +527,73 @@ PROMPT;
     }
 
     /**
+     * Valida e logga gli importi per debug
+     */
+    private function validateAndLogAmounts(array $data): array
+    {
+        $amountIssues = [];
+        
+        // Controlla sezione INPS
+        foreach ($data['inps'] ?? [] as $index => $inps) {
+            $debito = $inps['importo_a_debito'] ?? 0;
+            $credito = $inps['importo_a_credito'] ?? 0;
+            
+            // Controlla se l'importo sembra arrotondato (es. 962.00 invece di 962.64)
+            if (is_numeric($debito) && $debito == floor($debito) && $debito > 0) {
+                $amountIssues[] = "INPS[{$index}] importo_a_debito potenzialmente arrotondato: {$debito}";
+            }
+            
+            Log::info("💰 Importo INPS estratto", [
+                'causale' => $inps['causale'] ?? '',
+                'importo_a_debito' => $debito,
+                'importo_a_credito' => $credito,
+                'matricola' => $inps['matricola'] ?? ''
+            ]);
+        }
+        
+        // Controlla sezione ERARIO
+        foreach ($data['erario'] ?? [] as $index => $erario) {
+            $debito = $erario['importo_a_debito'] ?? 0;
+            $credito = $erario['importo_a_credito'] ?? 0;
+            
+            if (is_numeric($debito) && $debito == floor($debito) && $debito > 0) {
+                $amountIssues[] = "ERARIO[{$index}] importo_a_debito potenzialmente arrotondato: {$debito}";
+            }
+            
+            Log::info("💰 Importo ERARIO estratto", [
+                'codice_tributo' => $erario['codice_tributo'] ?? '',
+                'importo_a_debito' => $debito,
+                'importo_a_credito' => $credito
+            ]);
+        }
+        
+        // Controlla sezione IMU
+        foreach ($data['imu'] ?? [] as $index => $imu) {
+            $debito = $imu['importo_a_debito'] ?? 0;
+            $credito = $imu['importo_a_credito'] ?? 0;
+            
+            if (is_numeric($debito) && $debito == floor($debito) && $debito > 0) {
+                $amountIssues[] = "IMU[{$index}] importo_a_debito potenzialmente arrotondato: {$debito}";
+            }
+            
+            Log::info("💰 Importo IMU estratto", [
+                'codice_tributo' => $imu['codice_tributo'] ?? '',
+                'importo_a_debito' => $debito,
+                'importo_a_credito' => $credito
+            ]);
+        }
+        
+        if (!empty($amountIssues)) {
+            Log::warning("⚠️ POSSIBILI PROBLEMI IMPORTI DECIMALI", [
+                'issues' => $amountIssues,
+                'suggestion' => 'Verificare che ChatGPT non stia arrotondando gli importi'
+            ]);
+        }
+        
+        return $data;
+    }
+
+    /**
      * Restituisce una risposta JSON vuota
      */
     private function getEmptyResponse(): array
@@ -559,13 +655,52 @@ PROMPT;
     }
 
     /**
-     * Pulizia file temporanei
+     * Pulizia file temporanei e file OpenAI
      */
     private function cleanup(): void
     {
+        // Pulizia file locali temporanei
         if (isset($this->tempDir) && !empty($this->tempDir) && file_exists($this->tempDir)) {
             shell_exec("rm -rf '{$this->tempDir}'");
         }
+        
+        // Pulizia file caricati su OpenAI
+        $this->cleanupOpenAIFiles();
+    }
+    
+    /**
+     * Cancella tutti i file caricati su OpenAI
+     */
+    private function cleanupOpenAIFiles(): void
+    {
+        foreach ($this->uploadedFileIds as $fileId) {
+            try {
+                Log::info("🗑️ Cancellazione file OpenAI", ['file_id' => $fileId]);
+                
+                $response = Http::timeout(30)->withHeaders([
+                    'Authorization' => 'Bearer ' . $this->apiKey,
+                ])->delete("https://api.openai.com/v1/files/{$fileId}");
+
+                if ($response->successful()) {
+                    Log::info("✅ File OpenAI cancellato con successo", ['file_id' => $fileId]);
+                } else {
+                    Log::warning("⚠️ Errore nella cancellazione file OpenAI", [
+                        'file_id' => $fileId,
+                        'status' => $response->status(),
+                        'response' => $response->body()
+                    ]);
+                }
+                
+            } catch (\Exception $e) {
+                Log::error("❌ Errore durante cancellazione file OpenAI", [
+                    'file_id' => $fileId,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+        
+        // Reset dell'array dopo la pulizia
+        $this->uploadedFileIds = [];
     }
 
     /**

@@ -8,6 +8,21 @@ use App\Models\InvoicePaymentSchedule;
 
 class Invoice extends Model
 {
+    // Possibili stati SDI
+    const SDI_STATUS_PENDING = 'pending';           // In attesa di invio
+    const SDI_STATUS_SENT = 'sent';                 // Inviata al SDI
+    const SDI_STATUS_RECEIVED = 'received';         // Ricevuta dal SDI (accettata)
+    const SDI_STATUS_DELIVERED = 'delivered';       // Consegnata al destinatario (RC)
+    const SDI_STATUS_REJECTED = 'rejected';         // Rifiutata/Scartata dal SDI (NS)
+    const SDI_STATUS_DELIVERY_FAILED = 'delivery_failed'; // Mancata consegna (MC)
+    const SDI_STATUS_ERROR = 'error';               // Errore generico
+    const SDI_STATUS_PROCESSED = 'processed';       // Processata
+    const SDI_STATUS_UNKNOWN = 'unknown';           // Stato sconosciuto
+
+    // Possibili stati conservazione sostitutiva
+    const LEGAL_STORAGE_STATUS_PENDING = 'pending';   // In attesa di conservazione
+    const LEGAL_STORAGE_STATUS_STORED = 'stored';     // Conservata con successo
+    const LEGAL_STORAGE_STATUS_FAILED = 'failed';     // Errore nella conservazione
 
     protected static function boot()
     {
@@ -23,6 +38,9 @@ class Invoice extends Model
         'subtotal', 'vat', 'total', 'global_discount', 'header_notes', 'footer_notes',
         'save_notes_for_future', 'pdf_path', 'sdi_uuid', 'sdi_id_invio', 'sdi_status', 'payment_method_id',
         'sdi_error', 'sdi_error_description', 'sdi_sent_at', 'sdi_received_at', 'sdi_attempt', 'imported_from_ae',
+        'legal_storage_status', 'legal_storage_uuid', 'legal_storage_completed_at', 'legal_storage_error',
+        'notification_type', 'notification_file_name', 'sdi_identificativo', 'sdi_data_ricezione', 
+        'sdi_data_consegna', 'sdi_message_id', 'sdi_destinatario',
     ];
 
     // Se gli items sono in JSON, puoi farli castare come array:
@@ -32,6 +50,10 @@ class Invoice extends Model
         'sdi_sent_at'          => 'datetime',
         'sdi_received_at'      => 'datetime',
         'imported_from_ae'     => 'boolean',
+        'legal_storage_completed_at' => 'datetime',
+        'sdi_data_ricezione'   => 'datetime',
+        'sdi_data_consegna'    => 'datetime',
+        'sdi_destinatario'     => 'array',
     ];
 
     // Relazione con la società (se necessario)

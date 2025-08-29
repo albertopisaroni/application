@@ -105,6 +105,14 @@ class OpenApiController extends Controller
             
             $this->processSupplierInvoiceEvent($data['data']['invoice']);
             
+        } elseif ($event === 'customer-notification') {
+            // 📨 Notifiche per fatture attive (ricevute di consegna, ecc.)
+            $this->processCustomerNotificationEvent($data['data'] ?? []);
+            
+        } elseif ($event === 'legal-storage-receipt') {
+            // 📋 Ricevute di conservazione sostitutiva
+            $this->processLegalStorageReceiptEvent($data['data'] ?? []);
+            
         } else {
             // 📋 Altri eventi - solo log
             Log::info("📋 Evento SDI non gestito: {$event}", [
@@ -238,6 +246,217 @@ class OpenApiController extends Controller
         // - Email di alert per 'rejected' o 'error'
         // - Webhook per sistemi esterni
         // - Notifiche push per amministratori
+    }
+
+    /**
+     * Processa l'evento customer-notification (notifiche per fatture attive)
+     */
+    private function processCustomerNotificationEvent(array $eventData): void
+    {
+        $notification = $eventData['notification'] ?? [];
+        $invoiceUuid = $notification['invoice_uuid'] ?? null;
+        
+        if (!$invoiceUuid) {
+            Log::warning("⚠️ Notifica customer senza invoice_uuid", [
+                'notification_data' => $notification
+            ]);
+            return;
+        }
+
+        // Trova la fattura nel database
+        $invoice = Invoice::where('sdi_uuid', $invoiceUuid)->first();
+        if (!$invoice) {
+            Log::warning("⚠️ Fattura non trovata per notifica customer", [
+                'invoice_uuid' => $invoiceUuid,
+                'notification_type' => $notification['type'] ?? 'unknown'
+            ]);
+            return;
+        }
+
+        $notificationType = $notification['type'] ?? 'unknown';
+        $fileName = $notification['file_name'] ?? null;
+        $message = $notification['message'] ?? [];
+        
+        // Aggiorna la fattura con i dati della notifica
+        $updateData = [];
+        
+        switch ($notificationType) {
+            case 'RC': // Ricevuta di Consegna
+                $updateData['sdi_status'] = Invoice::SDI_STATUS_DELIVERED;
+                $updateData['sdi_received_at'] = now();
+                $updateData['notification_type'] = 'RC';
+                $updateData['notification_file_name'] = $fileName;
+                
+                // Estrai informazioni dalla ricevuta nei campi dedicati
+                if (!empty($message)) {
+                    $updateData['sdi_identificativo'] = $message['identificativo_sdi'] ?? null;
+                    $updateData['sdi_data_ricezione'] = !empty($message['data_ora_ricezione']) 
+                        ? \Carbon\Carbon::parse($message['data_ora_ricezione']) 
+                        : null;
+                    $updateData['sdi_data_consegna'] = !empty($message['data_ora_consegna']) 
+                        ? \Carbon\Carbon::parse($message['data_ora_consegna']) 
+                        : null;
+                    $updateData['sdi_message_id'] = $message['message_id'] ?? null;
+                    $updateData['sdi_destinatario'] = $message['destinatario'] ?? null;
+                }
+                
+                Log::info("✅ Ricevuta di consegna processata", [
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'sdi_uuid' => $invoiceUuid,
+                    'file_name' => $fileName,
+                    'message_id' => $message['message_id'] ?? null,
+                    'consegna' => $message['data_ora_consegna'] ?? null
+                ]);
+                break;
+                
+            case 'NS': // Notifica di Scarto
+                $updateData['sdi_status'] = Invoice::SDI_STATUS_REJECTED;
+                $updateData['sdi_error'] = 'NS';
+                $updateData['sdi_error_description'] = 'Notifica di Scarto ricevuta';
+                $updateData['notification_type'] = 'NS';
+                $updateData['notification_file_name'] = $fileName;
+                
+                // Per NS, salviamo i dettagli dell'errore nei campi dedicati
+                if (!empty($message)) {
+                    $updateData['sdi_identificativo'] = $message['identificativo_sdi'] ?? null;
+                    $updateData['sdi_message_id'] = $message['message_id'] ?? null;
+                }
+                
+                Log::warning("❌ Notifica di scarto ricevuta", [
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'sdi_uuid' => $invoiceUuid,
+                    'file_name' => $fileName,
+                    'message' => $message
+                ]);
+                break;
+                
+            case 'MC': // Mancata Consegna
+                $updateData['sdi_status'] = Invoice::SDI_STATUS_DELIVERY_FAILED;
+                $updateData['sdi_error'] = 'MC';
+                $updateData['sdi_error_description'] = 'Mancata Consegna';
+                $updateData['notification_type'] = 'MC';
+                $updateData['notification_file_name'] = $fileName;
+                
+                // Per MC, salviamo i dettagli nei campi dedicati
+                if (!empty($message)) {
+                    $updateData['sdi_identificativo'] = $message['identificativo_sdi'] ?? null;
+                    $updateData['sdi_message_id'] = $message['message_id'] ?? null;
+                }
+                
+                Log::warning("⚠️ Mancata consegna segnalata", [
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'sdi_uuid' => $invoiceUuid,
+                    'file_name' => $fileName,
+                    'message' => $message
+                ]);
+                break;
+                
+            default:
+                Log::info("📨 Notifica customer ricevuta", [
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'sdi_uuid' => $invoiceUuid,
+                    'notification_type' => $notificationType,
+                    'file_name' => $fileName,
+                    'message' => $message
+                ]);
+                
+                // Per tipi sconosciuti, salva solo il timestamp
+                $updateData['sdi_received_at'] = now();
+                break;
+        }
+        
+        if (!empty($updateData)) {
+            $invoice->update($updateData);
+        }
+    }
+
+    /**
+     * Processa l'evento legal-storage-receipt (ricevute conservazione sostitutiva)
+     */
+    private function processLegalStorageReceiptEvent(array $eventData): void
+    {
+        $receiptUuid = $eventData['uuid'] ?? null;
+        $invoiceUuid = $eventData['invoice_uuid'] ?? $eventData['object_id'] ?? null;
+        $status = $eventData['status'] ?? 'unknown';
+        $message = $eventData['message'] ?? null;
+        
+        if (!$invoiceUuid) {
+            Log::warning("⚠️ Ricevuta conservazione senza invoice_uuid", [
+                'receipt_data' => $eventData
+            ]);
+            return;
+        }
+
+        // Trova la fattura nel database
+        $invoice = Invoice::where('sdi_uuid', $invoiceUuid)->first();
+        if (!$invoice) {
+            Log::warning("⚠️ Fattura non trovata per ricevuta conservazione", [
+                'invoice_uuid' => $invoiceUuid,
+                'receipt_uuid' => $receiptUuid,
+                'status' => $status
+            ]);
+            return;
+        }
+
+        // Aggiorna la fattura con lo stato di conservazione (NON tocca sdi_status)
+        $updateData = [];
+        
+        switch ($status) {
+            case 'stored':
+                // Conservazione completata con successo
+                $updateData['legal_storage_status'] = Invoice::LEGAL_STORAGE_STATUS_STORED;
+                $updateData['legal_storage_uuid'] = $receiptUuid;
+                $updateData['legal_storage_completed_at'] = $eventData['updated_at'] ?? now();
+                $updateData['legal_storage_error'] = null; // Pulisci eventuali errori precedenti
+                
+                Log::info("✅ Conservazione sostitutiva completata", [
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'sdi_uuid' => $invoiceUuid,
+                    'receipt_uuid' => $receiptUuid,
+                    'conservazione_date' => $updateData['legal_storage_completed_at']
+                ]);
+                break;
+                
+            case 'error':
+            case 'failed':
+                // Errore nella conservazione
+                $updateData['legal_storage_status'] = Invoice::LEGAL_STORAGE_STATUS_FAILED;
+                $updateData['legal_storage_uuid'] = $receiptUuid;
+                $updateData['legal_storage_error'] = $message ?: 'Errore sconosciuto nella conservazione';
+                
+                Log::error("❌ Errore conservazione sostitutiva", [
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'sdi_uuid' => $invoiceUuid,
+                    'receipt_uuid' => $receiptUuid,
+                    'error_message' => $updateData['legal_storage_error']
+                ]);
+                break;
+                
+            default:
+                // Status sconosciuto, logga solo senza aggiornare
+                Log::info("📋 Ricevuta conservazione con status sconosciuto", [
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'sdi_uuid' => $invoiceUuid,
+                    'receipt_uuid' => $receiptUuid,
+                    'status' => $status,
+                    'message' => $message
+                ]);
+                
+                // Per status sconosciuti, salviamo almeno l'UUID per tracciabilità
+                $updateData['legal_storage_uuid'] = $receiptUuid;
+                break;
+        }
+        
+        if (!empty($updateData)) {
+            $invoice->update($updateData);
+        }
     }
 
     /**

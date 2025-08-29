@@ -166,6 +166,15 @@ class F24ImportService
                 ]);
             }
         }
+        
+        // Se la due_date è ancora null, imposta la data di oggi
+        if (empty($dueDate)) {
+            $dueDate = now()->format('Y-m-d');
+            Log::info("📅 Due date non trovata nell'F24, impostata a oggi", [
+                'due_date_set' => $dueDate,
+                'filename' => $filename
+            ]);
+        }
 
         // Calcola il totale e le sezioni
         $totalAmount = $this->calculateTotalAmount($chatGptResults);

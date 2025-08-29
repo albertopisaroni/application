@@ -64,6 +64,7 @@ return [
         'secret' => env('STRIPE_SECRET'),
         'client_id' => env('STRIPE_CLIENT_ID'),
         'redirect' => env('STRIPE_CONNECT_REDIRECT'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
     'twilio' => [
