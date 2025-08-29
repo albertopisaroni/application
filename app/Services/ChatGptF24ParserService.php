@@ -93,7 +93,7 @@ class ChatGptF24ParserService
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'Sei un parser fiscale esperto. Analizza il contenuto F24 e restituisci SOLO JSON valido.'
+                            'content' => 'Sei un parser fiscale esperto. Analizza il PDF F24 allegato e estrai TUTTI i dati presenti.'
                         ],
                         [
                             'role' => 'user',
@@ -125,7 +125,8 @@ class ChatGptF24ParserService
                 
                 Log::info("✅ ChatGPT risposta ricevuta al tentativo {$attempt}", [
                     'response_length' => strlen($jsonResponse),
-                    'response_complete' => $jsonResponse
+                    'response_complete' => $jsonResponse,
+                    'response_preview' => substr($jsonResponse, 0, 200) . '...'
                 ]);
                 
                 return $jsonResponse;
@@ -218,41 +219,63 @@ class ChatGptF24ParserService
     private function buildPrompt(): string
     {
         return <<<PROMPT
-Sei un parser fiscale. Ti fornisco un pdf di un F24.
-Non spostare mai dati da una sezione all’altra. 
-📌 REGOLE CRITICHE:
-- NON spostare MAI dati tra sezioni diverse
-- Se un dato è sotto "SEZIONE INPS", va SEMPRE in inps[]
-- Se un dato è sotto "SEZIONE IMU", va SEMPRE in imu[]
-- Se un dato è sotto "SEZIONE ERARIO", va SEMPRE in erario[]
-- Prendi SOLO le righe singole, IGNORA i totali
-- Se una sezione è vuota, restituisci [] per quella sezione
+Sei un parser fiscale esperto. Analizza il PDF F24 allegato e estrai TUTTI i dati presenti.
 
+🚨 REGOLE CRITICHE - SEGUI ALLA LETTERA:
 
-📌 CLASSIFICAZIONE OBBLIGATORIA - SEGUI QUESTE REGOLE ALLA LETTERA:
-- Codice 3850, 3912, 3913, 3914, 3915, 3916, 3917, 3918, 3919 vanno SEMPRE in sezione "imu"
-- Codici CPI, CPR, CF, AF, CFP, AFP, CP, AP, CPP, APP vanno SEMPRE in sezione "inps" (NON in erario!)
-- Codici 1668, 1669, 1790, 1791, 1792, 8944, 1944, 1989, 1990 vanno SEMPRE in sezione "erario"
+1. **ESTRAI TUTTI I DATI VISIBILI**: Non saltare nessuna riga con dati
+2. **SEZIONI**: Rispetta le sezioni del documento (ERARIO, INPS, IMU, REGIONI)
+3. **CODICI TRIBUTO**: Estrai sempre il codice tributo/causale
+4. **IMPORTI**: Estrai sempre gli importi (converti virgola in punto: 747,74 → 747.74)
+5. **DATE**: Estrai date di scadenza e periodi di riferimento
+6. **MATRICOLE**: Estrai matricole INPS quando presenti
 
-⚠️ ATTENZIONE: Se vedi un codice CF, AF, CP, AP, CPI, CPR, CFP, AFP, CPP, APP, DEVE andare in "inps" anche se nel documento appare sotto "ERARIO"!
+📋 STRUTTURA DETTAGLIATA DA SEGUIRE:
 
+**SEZIONE INPS** (se presente):
+- Cerca "SEZIONE INPS" o "INPS" nel documento
+- Estrai: codice_sede, causale, matricola, periodo_da, periodo_a, importo_a_debito, importo_a_credito
+- Esempio: se vedi "CF" come causale, "747,74" come importo, "01 2025" e "12 2025" come periodo → inserisci in inps[]
+- Cerca anche "codice sede", "causale contributo", "matricola INPS", "periodo di riferimento"
+- Se vedi "5600" come codice sede, "CF" come causale, "21540560251104882" come matricola → inserisci tutti questi dati
 
-📌 Regole obbligatorie:
-- Restituisci SEMPRE e SOLO un JSON valido UTF-8.
-- Non aggiungere mai testo, spiegazioni, markdown o commenti fuori dal JSON.
-- Mantieni SEMPRE la stessa struttura e gli stessi campi, anche se vuoti.
-- Importi: converti la virgola decimale in punto (es. 781,92 → 781.92).
-- Se un campo non esiste, usa null o array vuoto.
-- Cerca SEMPRE la data di scadenza nel documento (es. "DA VERSARE ENTRO IL 16/05/2023")
+**SEZIONE ERARIO** (se presente):
+- Cerca "SEZIONE ERARIO" o "ERARIO" nel documento  
+- Estrai: codice_tributo, rateazione, anno_riferimento, importo_a_debito, importo_a_credito
 
-📌 Struttura JSON da rispettare:
+**SEZIONE IMU** (se presente):
+- Cerca "SEZIONE IMU" o "IMU" nel documento
+- Estrai: codice_comune, codice_tributo, anno_riferimento, importo_a_debito, importo_a_credito
+
+**DATA DI SCADENZA**:
+- Cerca "SCADENZA:", "DA VERSARE ENTRO", "SCADENZA" nel documento
+- Formato: YYYY-MM-DD
+- Esempio: "SCADENZA: 16/02/2026" → "2026-02-16"
+
+📌 CLASSIFICAZIONE OBBLIGATORIA:
+- Codici CF, AF, CP, AP, CPI, CPR, CFP, AFP, CPP, APP → SEMPRE in "inps"
+- Codici 3850, 3912-3919 → SEMPRE in "imu"  
+- Codici 1668, 1669, 1790-1792, 8944, 1944, 1989, 1990 → SEMPRE in "erario"
+
+⚠️ IMPORTANTE:
+- Se vedi dati nella sezione INPS, DEVI inserirli in inps[]
+- Se vedi dati nella sezione ERARIO, DEVI inserirli in erario[]
+- NON lasciare sezioni vuote se ci sono dati visibili
+- Estrai TUTTI i numeri e codici che vedi
+
+📝 ESEMPIO COMPLETO (se vedi questi dati nell'F24):
+- Data scadenza: "SCADENZA: 16/02/2026" → "due_date": "2026-02-16"
+- Sezione INPS con: codice sede "5600", causale "CF", matricola "21540560251104882", periodo "01 2025" a "12 2025", importo "747,74"
+→ "inps": [{"codice_sede": "5600", "causale": "CF", "matricola": "21540560251104882", "periodo_da": "01 2025", "periodo_a": "12 2025", "importo_a_debito": 747.74, "importo_a_credito": 0}]
+
+📊 STRUTTURA JSON DA RISPETTARE:
 
 {
   "due_date": "YYYY-MM-DD|null",
   "erario": [
     {
       "codice_tributo": "string",
-      "rateazione": "string|null",
+      "rateazione": "string|null", 
       "anno_riferimento": "string|null",
       "importo_a_debito": number,
       "importo_a_credito": number
@@ -261,7 +284,7 @@ Non spostare mai dati da una sezione all’altra.
   "inps": [
     {
       "codice_sede": "string",
-      "causale": "string",
+      "causale": "string", 
       "matricola": "string",
       "periodo_da": "string",
       "periodo_a": "string",
@@ -273,7 +296,7 @@ Non spostare mai dati da una sezione all’altra.
     {
       "codice_comune": "string",
       "codice_tributo": "string",
-      "anno_riferimento": "string",
+      "anno_riferimento": "string", 
       "importo_a_debito": number,
       "importo_a_credito": number
     }
@@ -281,10 +304,7 @@ Non spostare mai dati da una sezione all’altra.
   "altri": []
 }
 
-📌 Input: PDF F24 allegato
-
-📌 Output atteso:
-<SOLO JSON valido secondo lo schema sopra>
+📌 OUTPUT: Restituisci SOLO JSON valido senza testo aggiuntivo
 PROMPT;
     }
 
@@ -546,6 +566,14 @@ PROMPT;
         if (isset($this->tempDir) && !empty($this->tempDir) && file_exists($this->tempDir)) {
             shell_exec("rm -rf '{$this->tempDir}'");
         }
+    }
+
+    /**
+     * Restituisce il prompt per debug
+     */
+    public function getPromptForDebug(): string
+    {
+        return $this->buildPrompt();
     }
 
     /**
