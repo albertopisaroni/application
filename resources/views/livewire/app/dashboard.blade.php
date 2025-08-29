@@ -13,6 +13,7 @@
         height="150"
         data-months='@json($months)'
         data-inv-data='@json($invoiceTotals)'
+        data-inv-subtotal='@json($invoiceSubtotals)'
       ></canvas>
     </div>
   
@@ -39,6 +40,24 @@
         data-months='@json($months)'
         data-sub-data='@json($subscriptionTotals)'
         data-sub-forecast='@json($subscriptionForecast)'
+      ></canvas>
+    </div>
+  
+    {{-- Tile Netto (Fatture - IVA - Spese) --}}
+    <div class="bg-white rounded-lg shadow p-4">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-lg font-medium">Netto ({{ now()->year }})</h2>
+        <div class="text-right">
+          <div class="text-sm text-gray-600">Totale Anno</div>
+          <div class="text-lg font-bold text-green-600">€{{ number_format($invoiceNetYearTotal, 2, ',', '.') }}</div>
+        </div>
+      </div>
+      <canvas
+        id="netChart"
+        height="150"
+        data-months='@json($months)'
+        data-net-data='@json($invoiceNetTotals)'
+        data-net-forecast='@json($invoiceNetForecast)'
       ></canvas>
     </div>
   </div>

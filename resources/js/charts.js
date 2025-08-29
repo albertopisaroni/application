@@ -9,6 +9,7 @@ export function initDashboardCharts() {
       // prendi i dati dai data-attributes
       const months = JSON.parse(invCanvas.dataset.months);
       const invData = JSON.parse(invCanvas.dataset.invData);
+      const invSubtotal = JSON.parse(invCanvas.dataset.invSubtotal);
   
       // distruggi se esiste già
       if (window._invoiceChart) window._invoiceChart.destroy();
@@ -19,18 +20,34 @@ export function initDashboardCharts() {
           type: 'line',
           data: {
             labels: months,
-            datasets: [{
-              label:           'Totale Fatturato (€)',
-              data:            invData,
-              borderColor:     '#AD96FF',
-              backgroundColor: 'rgba(173,150,255,0.3)',
-              fill:            true,
-              tension:         0.3
-            }]
+            datasets: [
+              {
+                label:           'Totale con IVA (€)',
+                data:            invData,
+                borderColor:     '#AD96FF',
+                backgroundColor: 'rgba(173,150,255,0.3)',
+                fill:            true,
+                tension:         0.3
+              },
+              {
+                label:           'Netto senza IVA (€)',
+                data:            invSubtotal,
+                borderColor:     '#8B5CF6',
+                backgroundColor: 'rgba(139,92,246,0.1)',
+                fill:            false,
+                tension:         0.3,
+                borderDash:      [3, 3]
+              }
+            ]
           },
           options: {
             scales: { y: { beginAtZero: true } },
-            plugins: { legend: { display: false } }
+            plugins: { 
+              legend: { 
+                display: true,
+                position: 'bottom'
+              } 
+            }
           }
         }
       );
@@ -77,7 +94,10 @@ export function initDashboardCharts() {
             y: { beginAtZero: true }
             },
             plugins: {
-            legend: { display: true }
+            legend: { 
+                display: true,
+                position: 'bottom'
+            }
             }
         }
         }
@@ -140,6 +160,55 @@ export function initDashboardCharts() {
         options: {
           scales: { y: { beginAtZero: false } },
           plugins: { legend: { display: false } }
+        }
+      }
+    );
+  }
+
+  // Net Chart (Fatture - IVA - Spese)
+  const netCanvas = document.getElementById('netChart');
+  if (netCanvas) {
+    const months = JSON.parse(netCanvas.dataset.months);
+    const netData = JSON.parse(netCanvas.dataset.netData);
+    const netForecast = JSON.parse(netCanvas.dataset.netForecast);
+
+    // distruggi se esiste già
+    if (window._netChart) window._netChart.destroy();
+
+    window._netChart = new Chart(
+      netCanvas.getContext('2d'),
+      {
+        type: 'line',
+        data: {
+          labels: months,
+          datasets: [
+            {
+              label:           'Netto Reale (€)',
+              data:            netData,
+              borderColor:     '#10B981', // Verde
+              backgroundColor: 'rgba(16,185,129,0.1)',
+              fill:            true,
+              tension:         0.3
+            },
+            {
+              label:           'Netto Previsto (€)',
+              data:            netForecast,
+              borderColor:     '#F59E0B', // Arancione
+              backgroundColor: 'rgba(245,158,11,0.1)',
+              fill:            false,
+              tension:         0.3,
+              borderDash:      [5, 5] // Linea tratteggiata
+            }
+          ]
+        },
+        options: {
+          scales: { y: { beginAtZero: true } },
+          plugins: { 
+            legend: { 
+              display: true,
+              position: 'bottom'
+            } 
+          }
         }
       }
     );
