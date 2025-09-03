@@ -284,7 +284,7 @@
                     </nav>
                     <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ricorrenti</h3>
                     <nav class="space-y-1 text-sm">
-                        <a href="#" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture ricorrenti</a>
+                        <a href="{{ route('fatture-ricorrenti.lista') }}" wire:navigate @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('fatture-ricorrenti.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Fatture ricorrenti</a>
                         <a wire:navigate href="{{ route('abbonamenti.lista') }}" @click="mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('abbonamenti.lista') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Abbonamenti</a>
                     </nav>
                     <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Gestione</h3>
@@ -504,7 +504,7 @@
                 </nav>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Ricorrenti</h3>
                 <nav class="space-y-1 text-sm">
-                    <a href="#" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 hover:bg-gray-100">Fatture ricorrenti</a>
+                    <a href="{{ route('fatture-ricorrenti.lista') }}" wire:navigate @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('fatture-ricorrenti.*') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Fatture ricorrenti</a>
                     <a wire:navigate href="{{ route('abbonamenti.lista') }}" @click="if (window.innerWidth < 1024) mobileMenuOpen = false" class="block rounded py-1.5 px-2 {{ request()->routeIs('abbonamenti.lista') ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100' }}">Abbonamenti</a>
                 </nav>
                 <h3 class="text-[12px] text-[#616161] mb-2 mt-10">Gestione</h3>

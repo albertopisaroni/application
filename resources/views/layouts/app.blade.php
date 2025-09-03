@@ -2,7 +2,7 @@
     $path = request()->path();
 
     $selected = match (true) {
-        (str_starts_with($path, 'fatture') || str_starts_with($path, 'abbonamenti') || str_starts_with($path, 'note-di-credito') || str_starts_with($path, 'autofatture')) => 'fatture',
+        (str_starts_with($path, 'fatture') || str_starts_with($path, 'fatture-ricorrenti') || str_starts_with($path, 'abbonamenti') || str_starts_with($path, 'note-di-credito') || str_starts_with($path, 'autofatture')) => 'fatture',
         str_starts_with($path, 'contatti') => 'contatti',
         str_starts_with($path, 'email') => 'email',
         str_starts_with($path, 'spese') => 'spese',

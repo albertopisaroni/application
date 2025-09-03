@@ -83,6 +83,16 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
         Route::get('/fatture/nuova', [InvoiceController::class, 'create'])->name('fatture.nuova');
         Route::post('/fatture', [InvoiceController::class, 'store'])->name('fatture.store');
 
+        // FATTURE RICORRENTI
+        Route::get('/fatture-ricorrenti', [App\Http\Controllers\RecurringInvoiceController::class, 'index'])->name('fatture-ricorrenti.lista');
+        Route::get('/fatture-ricorrenti/nuova', [App\Http\Controllers\RecurringInvoiceController::class, 'create'])->name('fatture-ricorrenti.nuova');
+        Route::post('/fatture-ricorrenti', [App\Http\Controllers\RecurringInvoiceController::class, 'store'])->name('fatture-ricorrenti.store');
+        Route::get('/fatture-ricorrenti/{recurringInvoice}', [App\Http\Controllers\RecurringInvoiceController::class, 'show'])->name('fatture-ricorrenti.show');
+        Route::get('/fatture-ricorrenti/{recurringInvoice}/edit', [App\Http\Controllers\RecurringInvoiceController::class, 'edit'])->name('fatture-ricorrenti.edit');
+        Route::put('/fatture-ricorrenti/{recurringInvoice}', [App\Http\Controllers\RecurringInvoiceController::class, 'update'])->name('fatture-ricorrenti.update');
+        Route::delete('/fatture-ricorrenti/{recurringInvoice}', [App\Http\Controllers\RecurringInvoiceController::class, 'destroy'])->name('fatture-ricorrenti.destroy');
+        Route::patch('/fatture-ricorrenti/{recurringInvoice}/toggle-active', [App\Http\Controllers\RecurringInvoiceController::class, 'toggleActive'])->name('fatture-ricorrenti.toggle-active');
+
         // NOTE DI CREDITO
         Route::get('/note-di-credito', [InvoiceController::class, 'creditNotesList'])->name('note-di-credito.lista');
         Route::get('/note-di-credito/nuova', [InvoiceController::class, 'createCreditNote'])->name('note-di-credito.nuova');

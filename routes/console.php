@@ -13,3 +13,12 @@ Schedule::command('taxes:calculate-forfettario')
     ->emailOutputOnFailure(config('mail.admin_email'))
     ->description('Calcolo annuale tasse regime forfettario');
 
+// Comando per processare le fatture ricorrenti
+// Eseguito ogni giorno alle 9:00
+Schedule::command('recurring-invoices:process')
+    ->dailyAt('09:00')
+    ->withoutOverlapping()
+    ->sendOutputTo(storage_path('logs/recurring-invoices.log'))
+    ->emailOutputOnFailure(config('mail.admin_email'))
+    ->description('Elaborazione giornaliera fatture ricorrenti');
+

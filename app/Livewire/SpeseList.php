@@ -190,16 +190,15 @@ class SpeseList extends Component
         }      
 
         if ($this->paymentStatusFilter === 'unpaid') {
-            $query->where(function ($query) {
-                $query->whereHas('payments', function ($q) {
-                    $q->selectRaw('SUM(amount)')->havingRaw('SUM(amount) < invoices.total');
-                })->orWhereDoesntHave('payments');
-            })->where('total', '>', 0);
+            $query->where('total', '>', 0)
+                  ->where(function ($query) {
+                      $query->whereDoesntHave('payments')
+                            ->orWhereRaw('total > (SELECT COALESCE(SUM(amount), 0) FROM invoice_passive_payments WHERE invoice_passive_id = invoices_passive.id)');
+                  });
         } elseif ($this->paymentStatusFilter === 'paid') {
             $query->where(function ($query) {
-                $query->whereHas('payments', function ($q) {
-                    $q->selectRaw('SUM(amount)')->havingRaw('SUM(amount) >= invoices.total');
-                })->orWhere('total', '<=', 0);
+                $query->where('total', '<=', 0)
+                      ->orWhereRaw('total <= (SELECT COALESCE(SUM(amount), 0) FROM invoice_passive_payments WHERE invoice_passive_id = invoices_passive.id)');
             });
         }
 

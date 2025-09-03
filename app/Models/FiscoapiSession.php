@@ -15,6 +15,7 @@ class FiscoapiSession extends Model
         'qr_code',
         'refresh_token',
         'response',
+        'post_login_executed',
     ];
 
     protected $casts = [

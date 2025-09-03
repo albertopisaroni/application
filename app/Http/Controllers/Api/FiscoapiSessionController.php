@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Services\FiscoApiService;
 use App\Models\FiscoapiSession;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Artisan;
 
 class FiscoapiSessionController extends Controller
 {
@@ -33,9 +35,17 @@ class FiscoapiSessionController extends Controller
     {
         $payload = $request->all();
         $session = $fiscoApi->aggiornaSessioneDaWebhook($payload);
+
+        Log::info('Webhook fiscoapi ricevuto', ['payload' => $payload]);
+
         if (!$session) {
             return response()->json(['success' => false, 'message' => 'Sessione non trovata'], 404);
         }
+
+        if($session->stato == 'sessione_attiva'){
+            Artisan::call('fiscoapi:post-login', ['id_sessione' => $session->id_sessione]);
+        }
+
         return response()->json(['success' => true, 'session' => $session]);
     }
 }

@@ -32,9 +32,9 @@ class FiscoapiPostLoginJob implements ShouldQueue
         // Check if post-login has already been executed for this session
         $session = FiscoapiSession::where('id_sessione', $this->id_sessione)->first();
         
-        if ($session && !$session->post_login_executed) {
+        if ($session && ($session->post_login_executed == 0 || $session->post_login_executed == 2)) {
             // Mark as executed first to prevent duplicate jobs
-            $session->update(['post_login_executed' => true]);
+            $session->update(['post_login_executed' => 1]);
             
             // Execute the artisan command
             Artisan::call('fiscoapi:post-login', ['id_sessione' => $this->id_sessione]);

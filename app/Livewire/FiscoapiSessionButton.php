@@ -73,9 +73,8 @@ class FiscoapiSessionButton extends Component
 
                 if ($session->stato === 'sessione_attiva' || $session->stato === 'autenticato') {
                     
-                    Artisan::queue('fiscoapi:post-login', [
-                        'id_sessione' => $session->id_sessione,
-                    ]);
+                    // Usa il job invece di Artisan::queue per evitare duplicati
+                    \App\Jobs\FiscoapiPostLoginJob::dispatch($session->id_sessione);
 
                     $this->swal = [
                         'title' => 'Sessione attiva!',
