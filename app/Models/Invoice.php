@@ -36,7 +36,7 @@ class Invoice extends Model
         'company_id', 'client_id', 'numbering_id', 'invoice_number', 'issue_date', 'document_type', 'contact_info',
         'original_invoice_id', 'recurring_invoice_id', 'data_accoglienza_file', 'fiscal_year', 'withholding_tax', 'inps_contribution', 'payment_methods_id',
         'subtotal', 'vat', 'total', 'global_discount', 'header_notes', 'footer_notes',
-        'save_notes_for_future', 'pdf_path', 'sdi_uuid', 'sdi_id_invio', 'sdi_status', 'payment_method_id',
+        'save_notes_for_future', 'pdf_path', 'pdf_url', 'sdi_uuid', 'sdi_id_invio', 'sdi_status', 'payment_method_id',
         'sdi_error', 'sdi_error_description', 'sdi_sent_at', 'sdi_received_at', 'sdi_attempt', 'imported_from_ae',
         'legal_storage_status', 'legal_storage_uuid', 'legal_storage_completed_at', 'legal_storage_error',
         'notification_type', 'notification_file_name', 'sdi_identificativo', 'sdi_data_ricezione', 
@@ -65,6 +65,11 @@ class Invoice extends Model
     public function paymentSchedules(): HasMany
     {
         return $this->hasMany(InvoicePaymentSchedule::class);
+    }
+
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class, 'payment_method_id');
     }
 
     public function client()

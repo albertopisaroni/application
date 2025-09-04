@@ -245,7 +245,8 @@ class InvoiceXmlGenerator
         $xml .= "\n        <IdPaese>IT</IdPaese>";
         $xml .= "\n        <IdCodice>{$companyPiva}</IdCodice>";
         $xml .= "\n      </IdTrasmittente>";
-        $xml .= "\n      <ProgressivoInvio>{$invoice->sdi_attempt}</ProgressivoInvio>";
+        // Use invoice number as ProgressivoInvio to ensure uniqueness
+        $xml .= "\n      <ProgressivoInvio>{$invoice->invoice_number}</ProgressivoInvio>";
         $xml .= "\n      <FormatoTrasmissione>FPR12</FormatoTrasmissione>";
         $xml .= "\n      {$destinatario}";
         $xml .= "\n      <ContattiTrasmittente>";
