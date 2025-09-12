@@ -9,6 +9,7 @@ class RecurringInvoiceItem extends Model
 {
     protected $fillable = [
         'recurring_invoice_id',
+        'name',
         'description',
         'quantity',
         'unit_price',

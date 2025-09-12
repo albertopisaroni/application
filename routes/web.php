@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\EnsureUserHasCompany;
 use App\Http\Middleware\IsAdmin;
 
+
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ApplicationController;
@@ -92,6 +93,7 @@ Route::middleware([ 'auth:sanctum', config('jetstream.auth_session'), 'verified'
         Route::put('/fatture-ricorrenti/{recurringInvoice}', [App\Http\Controllers\RecurringInvoiceController::class, 'update'])->name('fatture-ricorrenti.update');
         Route::delete('/fatture-ricorrenti/{recurringInvoice}', [App\Http\Controllers\RecurringInvoiceController::class, 'destroy'])->name('fatture-ricorrenti.destroy');
         Route::patch('/fatture-ricorrenti/{recurringInvoice}/toggle-active', [App\Http\Controllers\RecurringInvoiceController::class, 'toggleActive'])->name('fatture-ricorrenti.toggle-active');
+        Route::get('/ajax/clients/{client}/subscriptions', [App\Http\Controllers\RecurringInvoiceController::class, 'getClientSubscriptions'])->name('ajax.clients.subscriptions');
 
         // NOTE DI CREDITO
         Route::get('/note-di-credito', [InvoiceController::class, 'creditNotesList'])->name('note-di-credito.lista');

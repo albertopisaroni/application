@@ -63,6 +63,7 @@
                     <th class="py-2 pl-2 pr-4 font-normal">Template</th>
                     <th class="py-2 px-4 font-normal">Cliente</th>
                     <th class="py-2 px-4 font-normal">Ricorrenza</th>
+                    <th class="py-2 px-4 font-normal">Stripe</th>
                     <th class="py-2 px-4 font-normal">Stato</th>
                     <th class="py-2 px-4 font-normal">Importo</th>
                     <th class="py-2 px-4 font-normal">Prossima fattura</th>
@@ -87,6 +88,25 @@
                             <div class="text-sm text-gray-900">
                                 {{ $recurringInvoice->recurrence_description }}
                             </div>
+                        </td>
+                        <td class="py-4 px-4 whitespace-nowrap">
+                            @if($recurringInvoice->stripe_subscription_id)
+                                <div class="flex items-center gap-1">
+                                    <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"/>
+                                    </svg>
+                                    @if($recurringInvoice->trigger_on_payment)
+                                        <span class="text-xs text-blue-600 font-medium">Auto</span>
+                                    @else
+                                        <span class="text-xs text-gray-500">Collegato</span>
+                                    @endif
+                                </div>
+                                <div class="text-xs text-gray-400 truncate max-w-20" title="{{ $recurringInvoice->stripe_subscription_id }}">
+                                    {{ substr($recurringInvoice->stripe_subscription_id, 0, 12) }}...
+                                </div>
+                            @else
+                                <span class="text-xs text-gray-400">–</span>
+                            @endif
                         </td>
                         <td class="py-4 px-4 whitespace-nowrap">
                             @if ($recurringInvoice->is_active)

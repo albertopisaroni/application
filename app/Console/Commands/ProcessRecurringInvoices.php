@@ -44,8 +44,10 @@ class ProcessRecurringInvoices extends Command
             $this->warn('DRY RUN MODE - No invoices will be created');
         }
 
-        // Get all recurring invoices ready to generate
-        $recurringInvoices = RecurringInvoice::readyToGenerate()->get();
+        // Get all recurring invoices ready to generate (exclude Stripe-triggered ones for scheduled runs)
+        $recurringInvoices = RecurringInvoice::readyToGenerate()
+            ->where('trigger_on_payment', false) // Only time-based recurring invoices for scheduled runs
+            ->get();
         
         if ($recurringInvoices->isEmpty()) {
             $this->info('No recurring invoices ready to process.');
@@ -95,12 +97,12 @@ class ProcessRecurringInvoices extends Command
     /**
      * Generate a new invoice from a recurring invoice
      */
-    private function generateInvoiceFromRecurring(RecurringInvoice $recurringInvoice): Invoice
+    public function generateInvoiceFromRecurring(RecurringInvoice $recurringInvoice): Invoice
     {
         return DB::transaction(function () use ($recurringInvoice) {
             // Get the next invoice number from the numbering (consistent with manual creation)
             $numbering = $recurringInvoice->numbering;
-            $nextNumber = ($numbering->prefix ? $numbering->prefix . '-' : '') . $numbering->getNextNumericPart();
+            $nextNumber = $numbering->nextNumber(now()->year);
 
             // Create the new invoice (consistent with manual creation)
             $invoice = Invoice::create([
@@ -128,8 +130,7 @@ class ProcessRecurringInvoices extends Command
                 'sdi_attempt' => 1,
             ]);
 
-            // Increment the invoice number counter (consistent with manual creation)
-            $numbering->increment('current_number_invoice');
+            // The invoice number counter has already been incremented by nextNumber()
 
             // Add payment schedule (required for SDI) - consistent with manual creation
             $invoice->paymentSchedules()->create([
@@ -180,7 +181,7 @@ class ProcessRecurringInvoices extends Command
      * Process invoice after creation: generate PDF, send to SDI, send emails
      * This replicates the same workflow as manual invoice creation
      */
-    private function processInvoiceAfterCreation(Invoice $invoice): void
+    public function processInvoiceAfterCreation(Invoice $invoice): void
     {
         try {
             // Follow exact same order as manual creation:

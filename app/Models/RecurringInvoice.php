@@ -20,24 +20,32 @@ class RecurringInvoice extends Model
 
     protected $fillable = [
         'company_id', 'client_id', 'numbering_id', 'payment_method_id',
+        'stripe_subscription_id', 'trigger_on_payment',
         'template_name', 'header_notes', 'footer_notes', 'contact_info',
         'subtotal', 'vat', 'total', 'global_discount', 'withholding_tax', 'inps_contribution',
-        'recurrence_type', 'recurrence_interval', 'start_date', 'end_date', 'next_invoice_date',
-        'is_active', 'invoices_generated', 'max_invoices', 'last_generated_at'
+        'recurrence_mode', 'recurrence_type', 'recurrence_interval', 'start_date', 'end_date', 'next_invoice_date',
+        'is_active', 'invoices_generated', 'max_invoices', 'last_generated_at',
+        'document_type', 'ddt_number', 'ddt_date',
+        'split_payments', 'due_option', 'due_date', 'payments'
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
         'next_invoice_date' => 'date',
+        'due_date' => 'date',
+        'ddt_date' => 'date',
         'last_generated_at' => 'datetime',
         'is_active' => 'boolean',
+        'trigger_on_payment' => 'boolean',
         'withholding_tax' => 'boolean',
         'inps_contribution' => 'boolean',
+        'split_payments' => 'boolean',
         'subtotal' => 'decimal:2',
         'vat' => 'decimal:2',
         'total' => 'decimal:2',
         'global_discount' => 'decimal:2',
+        'payments' => 'array',
     ];
 
     // Relationships
@@ -69,6 +77,11 @@ class RecurringInvoice extends Model
     public function generatedInvoices(): HasMany
     {
         return $this->hasMany(Invoice::class, 'recurring_invoice_id');
+    }
+
+    public function stripeSubscription(): BelongsTo
+    {
+        return $this->belongsTo(Subscription::class, 'stripe_subscription_id', 'stripe_subscription_id');
     }
 
     // Scopes

@@ -50,7 +50,7 @@ class InvoiceNumbering extends Model
         $this->save();
     
         return $this->type === 'custom' && !empty($this->prefix)
-            ? $this->prefix . $this->current_number_invoice
+            ? $this->prefix . '-' . $this->current_number_invoice
             : (string) $this->current_number_invoice;
     }
 
@@ -61,14 +61,14 @@ class InvoiceNumbering extends Model
         // Se l'anno corrente è diverso da last_invoice_year, il prossimo numero è 1.
         if ($this->last_invoice_year != $currentYear) {
             return $this->type === 'custom' && !empty($this->prefix)
-                ? $this->prefix . '1'
+                ? $this->prefix . '-1'
                 : '1';
         }
 
         // Altrimenti, restituisci current_number_invoice + 1 senza modificare il DB.
         $next = $this->current_number_invoice + 1;
         return $this->type === 'custom' && !empty($this->prefix)
-            ? $this->prefix . $next
+            ? $this->prefix . '-' . $next
             : (string) $next;
     }
 

@@ -6,6 +6,11 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Subscription;
 use App\Models\Client;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
+use App\Models\InvoiceNumbering;
+use App\Models\PaymentMethod;
+use App\Console\Commands\ProcessRecurringInvoices;
 use Carbon\Carbon;
 
 class SubscriptionList extends Component
@@ -160,4 +165,86 @@ class SubscriptionList extends Component
             'stripeAccounts'  => $this->stripeAccounts,
         ]);
     }
+
+    /**
+     * Create a single invoice from a Stripe subscription
+     */
+    public function createInvoiceFromSubscription($subscriptionId)
+    {
+        try {
+            $subscription = Subscription::with(['client', 'price.product'])->findOrFail($subscriptionId);
+            
+            // Get default numbering for the company
+            $numbering = InvoiceNumbering::where('company_id', session('current_company_id'))
+                ->first();
+            
+            if (!$numbering) {
+                session()->flash('error', 'Nessuna numerazione disponibile per questa company');
+                return;
+            }
+
+            // Get default payment method
+            $paymentMethod = PaymentMethod::where('company_id', session('current_company_id'))
+                ->first();
+
+            // Create invoice
+            $invoiceNumber = $numbering->nextNumber(now()->year);
+            $invoice = Invoice::create([
+                'company_id' => session('current_company_id'),
+                'client_id' => $subscription->client_id,
+                'numbering_id' => $numbering->id,
+                'payment_method_id' => $paymentMethod?->id ?: 1,
+                'invoice_number' => $invoiceNumber,
+                'issue_date' => now()->toDateString(),
+                'fiscal_year' => now()->year,
+                'document_type' => 'TD01',
+                'subtotal' => $subscription->subtotal_amount / 100, // Convert from cents
+                'vat' => $subscription->vat_amount / 100,
+                'total' => $subscription->total_with_vat / 100,
+                'global_discount' => $subscription->discount_amount / 100,
+                'withholding_tax' => false,
+                'inps_contribution' => false,
+                'header_notes' => "Fattura generata da abbonamento Stripe: {$subscription->stripe_subscription_id}",
+                'footer_notes' => null,
+                'contact_info' => null,
+                'save_notes_for_future' => false,
+                'sdi_sent_at' => null,
+                'sdi_received_at' => null,
+                'sdi_attempt' => 1,
+            ]);
+
+            // Create invoice item
+            InvoiceItem::create([
+                'invoice_id' => $invoice->id,
+                'name' => $subscription->price->product->name ?? 'Abbonamento',
+                'description' => "Abbonamento {$subscription->price->product->name}" . 
+                    ($subscription->current_period_start && $subscription->current_period_end 
+                        ? " - Periodo: " . $subscription->current_period_start->format('d/m/Y') . ' - ' . $subscription->current_period_end->format('d/m/Y')
+                        : ""),
+                'quantity' => $subscription->quantity ?? 1,
+                'unit_of_measure' => '',
+                'unit_price' => $subscription->unit_amount / 100,
+                'vat_rate' => $subscription->vat_rate ?? 22,
+            ]);
+
+            // The numbering counter has already been incremented by nextNumber()
+
+            // Add payment schedule
+            $invoice->paymentSchedules()->create([
+                'due_date' => now()->addDays(30)->toDateString(),
+                'amount' => $invoice->total,
+                'type' => 'amount',
+                'percent' => null,
+            ]);
+
+            session()->flash('success', "Fattura #{$invoice->invoice_number} creata con successo dall'abbonamento! Puoi ora modificarla o inviarla dalla lista fatture.");
+            
+            // Redirect to invoice list
+            return redirect()->route('fatture.lista');
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Errore nella creazione della fattura: ' . $e->getMessage());
+        }
+    }
+
 }

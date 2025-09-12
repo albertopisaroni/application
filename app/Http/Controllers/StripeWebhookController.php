@@ -15,6 +15,8 @@ use App\Models\Product;
 use App\Models\Price;
 use App\Models\Subscription;
 use App\Models\Invoice;
+use App\Models\RecurringInvoice;
+use App\Console\Commands\ProcessRecurringInvoices;
 use Illuminate\Support\Facades\Cache;
 
 class StripeWebhookController extends Controller
@@ -115,6 +117,7 @@ class StripeWebhookController extends Controller
             case 'customer.deleted':
                 $this->handleCustomerDeleted($eventData, $stripeAccount);
                 break;
+
 
             default:
                 Log::info("Webhook event type not handled: {$eventType}");
@@ -319,6 +322,9 @@ class StripeWebhookController extends Controller
         ]);
 
         Log::info("Subscription processed successfully", ['subscription_id' => $subscription['id']]);
+
+        // Check if this subscription update should trigger a recurring invoice
+        $this->checkAndTriggerRecurringInvoice($subscription, $stripeAccount);
     }
 
     /**
@@ -509,6 +515,76 @@ class StripeWebhookController extends Controller
         } catch (\Exception $e) {
             // Fallback: commissioni minime
             return 25; // Solo la fee fissa di €0.25
+        }
+    }
+
+    /**
+     * Controlla se l'aggiornamento della subscription deve triggerare una fattura ricorrente
+     */
+    protected function checkAndTriggerRecurringInvoice($subscription, $stripeAccount)
+    {
+        Log::info("Checking if subscription update should trigger recurring invoice", [
+            'subscription_id' => $subscription['id'],
+            'status' => $subscription['status']
+        ]);
+
+        // Solo per subscription attive
+        if ($subscription['status'] !== 'active') {
+            Log::info("Subscription not active, skipping recurring invoice trigger");
+            return;
+        }
+
+        $subscriptionId = $subscription['id'];
+
+        // Trova la fattura ricorrente associata a questo abbonamento Stripe
+        $recurringInvoice = RecurringInvoice::where('stripe_subscription_id', $subscriptionId)
+            ->where('trigger_on_payment', true)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$recurringInvoice) {
+            Log::info("No recurring invoice found for subscription or trigger_on_payment disabled", [
+                'subscription_id' => $subscriptionId
+            ]);
+            return;
+        }
+
+        // Verifica se è passato abbastanza tempo dall'ultima fattura generata
+        if ($recurringInvoice->last_generated_at && 
+            $recurringInvoice->last_generated_at->diffInDays(now()) < 25) {
+            Log::info("Recurring invoice generated recently, skipping", [
+                'last_generated_at' => $recurringInvoice->last_generated_at,
+                'days_since_last' => $recurringInvoice->last_generated_at->diffInDays(now())
+            ]);
+            return;
+        }
+
+        try {
+            Log::info("Triggering recurring invoice generation from Stripe subscription update", [
+                'recurring_invoice_id' => $recurringInvoice->id,
+                'stripe_subscription_id' => $subscriptionId
+            ]);
+
+            // Crea un'istanza del comando e genera la fattura
+            $command = new ProcessRecurringInvoices();
+            $invoice = $command->generateInvoiceFromRecurring($recurringInvoice);
+
+            // Processa la fattura (PDF, SDI, Email) fuori dalla transazione
+            $command->processInvoiceAfterCreation($invoice);
+
+            Log::info("Recurring invoice generated successfully from Stripe subscription", [
+                'generated_invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'stripe_subscription_id' => $subscriptionId
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Failed to generate recurring invoice from Stripe subscription", [
+                'recurring_invoice_id' => $recurringInvoice->id,
+                'stripe_subscription_id' => $subscriptionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 } 

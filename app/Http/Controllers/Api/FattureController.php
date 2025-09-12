@@ -260,11 +260,12 @@ public function nuovaPiva(NuovaPivaRequest $request)
             $num = InvoiceNumbering::where('name',$data['numerazione'])->where('company_id', $company->id)->firstOrFail();
 
             // CREA FATTURA
+            $invoiceNumber = $num->nextNumber(Carbon::parse($data['issue_date'])->year);
             $invoice = Invoice::create([
                 'company_id'        => $company->id,
                 'client_id'         => $client->id,
                 'numbering_id'      => $num->id,
-                'invoice_number'    => ($num->prefix ? $num->prefix . '-' : '') . $num->getNextNumericPart(),
+                'invoice_number'    => $invoiceNumber,
                 'issue_date'        => $data['issue_date'],
                 'fiscal_year'       => Carbon::parse($data['issue_date'])->year,
                 'withholding_tax'   => 0,
@@ -310,8 +311,7 @@ public function nuovaPiva(NuovaPivaRequest $request)
                 ]);
             }
 
-            // INCREMENTA PROGRESSIVO
-            $num->increment('current_number_invoice');
+            // Il progressivo è già stato incrementato dal metodo nextNumber()
 
             // SCADENZE
             $schedules = $data['scadenze'] ?? [];

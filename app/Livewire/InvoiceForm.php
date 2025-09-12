@@ -353,11 +353,12 @@ class InvoiceForm extends Component
 
         try {
             // 1) Creo la fattura
+            $invoiceNumber = $numbering->nextNumber(Carbon::parse($this->invoiceDate)->format('Y'));
             $invoice = Invoice::create([
                 'company_id'           => $this->company->id,
                 'client_id'            => $client->id,
                 'numbering_id'         => $this->selectedNumberingId,
-                'invoice_number'       => ($numbering->prefix ? $numbering->prefix . '-' : '') . $numbering->getNextNumericPart(),
+                'invoice_number'       => $invoiceNumber,
                 'issue_date'           => $this->invoiceDate,
                 'fiscal_year'          => Carbon::parse($this->invoiceDate)->format('Y'),
                 'withholding_tax'      => $this->withholdingTax,
@@ -389,8 +390,7 @@ class InvoiceForm extends Component
                 ]);
             }
 
-            // 3) Aggiorno il progressivo per le fatture
-            $numbering->increment('current_number_invoice');
+            // 3) Il progressivo è già stato aggiornato dal metodo nextNumber()
 
             // 4) Salvo le note se richiesto
             if ($this->saveNotesForFuture) {
@@ -530,7 +530,7 @@ class InvoiceForm extends Component
         $numbering = InvoiceNumbering::find($value);
     
         $this->invoicePrefix = $numbering->prefix ?? '';
-        $this->invoiceNumber = $numbering->current_number_invoice ?? 1;
+        $this->invoiceNumber = $numbering->getNextNumericPart();
     
         $this->headerNotes = $numbering->default_header_notes ?? $this->headerNotes;
         $this->footerNotes = $numbering->default_footer_notes ?? $this->footerNotes;

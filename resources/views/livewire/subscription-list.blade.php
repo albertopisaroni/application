@@ -225,14 +225,60 @@
                             {{ strtolower($subscription->start_date->locale('it')->isoFormat('DD MMM YYYY, HH:mm')) }}
                         </td>
                         <td class="whitespace-nowrap py-4 px-4 text-right">
-                            <div class="flex justify-end items-center gap-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">                        
+                            <div class="relative" x-data="{ open: false }">
+                                <button @click="open = !open" class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded hover:bg-gray-100">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="0.392857" y="0.392857" width="19.2143" height="19.2143" rx="2.75" stroke="#AD96FF" stroke-width="0.785714"/>
+                                        <path d="M5.74408 10H5.75063M10 10H10.0066M14.2494 10H14.256" stroke="#AD96FF" stroke-width="2.35714" stroke-linecap="round"/>
+                                    </svg>
+                                </button>
                                 
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="0.392857" y="0.392857" width="19.2143" height="19.2143" rx="2.75" stroke="#AD96FF" stroke-width="0.785714"/>
-                                    <path d="M5.74408 10H5.75063M10 10H10.0066M14.2494 10H14.256" stroke="#AD96FF" stroke-width="2.35714" stroke-linecap="round"/>
-                                </svg>
-                                    
-                                
+                                <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-50 border">
+                                    <div class="py-1">
+                                        <button 
+                                            wire:click="createInvoiceFromSubscription({{ $subscription->id }})"
+                                            @click="open = false"
+                                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                                            wire:loading.attr="disabled"
+                                            wire:target="createInvoiceFromSubscription({{ $subscription->id }})"
+                                        >
+                                            <div class="flex items-center gap-2">
+                                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M3 2a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V3a1 1 0 00-1-1H3zm2 3h6v1H5V5zm0 2h6v1H5V7zm0 2h4v1H5V9z" fill="currentColor"/>
+                                                </svg>
+                                                <span wire:loading.remove wire:target="createInvoiceFromSubscription({{ $subscription->id }})">
+                                                    Crea Fattura Singola
+                                                </span>
+                                                <span wire:loading wire:target="createInvoiceFromSubscription({{ $subscription->id }})" class="text-blue-600">
+                                                    Creando fattura...
+                                                </span>
+                                            </div>
+                                        </button>
+                                        
+                                        <a href="{{ route('fatture-ricorrenti.nuova', ['from_subscription' => $subscription->id]) }}"
+                                           @click="open = false"
+                                           class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors"
+                                        >
+                                            <div class="flex items-center gap-2">
+                                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M2 2a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H3a1 1 0 01-1-1V2zm0 5a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H3a1 1 0 01-1-1V7zm3 2a1 1 0 100 2h4a1 1 0 100-2H5z" fill="currentColor"/>
+                                                </svg>
+                                                Crea Fattura Ricorrente
+                                            </div>
+                                        </a>
+                                        
+                                        <div class="border-t border-gray-100 my-1"></div>
+                                        
+                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                            <div class="flex items-center gap-2">
+                                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M8 2a6 6 0 100 12A6 6 0 008 2zM7 7a1 1 0 112 0v3a1 1 0 11-2 0V7zm1-3a1 1 0 100 2 1 1 0 000-2z" fill="currentColor"/>
+                                                </svg>
+                                                Dettagli Abbonamento
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </td>
                     </tr>

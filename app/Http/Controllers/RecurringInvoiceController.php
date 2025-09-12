@@ -6,6 +6,7 @@ use App\Models\RecurringInvoice;
 use App\Models\InvoiceNumbering;
 use App\Models\Client;
 use App\Models\PaymentMethod;
+use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -22,15 +23,77 @@ class RecurringInvoiceController extends Controller
     /**
      * Show the form for creating a new recurring invoice.
      */
-    public function create()
+    public function create(Request $request)
     {
         $companyId = Auth::user()->current_company_id;
+        
+        // Debug: log the company ID being used
+        \Log::info("RecurringInvoice create form accessed", [
+            'user_id' => Auth::id(),
+            'company_id' => $companyId,
+            'from_subscription' => $request->get('from_subscription')
+        ]);
         
         $numberings = InvoiceNumbering::where('company_id', $companyId)->get();
         $clients = Client::where('company_id', $companyId)->get();
         $paymentMethods = PaymentMethod::where('company_id', $companyId)->get();
+        
+        // Precompile data from subscription if provided
+        $prefillData = null;
+        if ($request->has('from_subscription')) {
+            $subscription = Subscription::with(['client', 'price.product'])
+                ->find($request->get('from_subscription'));
+                
+            if ($subscription && $subscription->client->company_id == $companyId) {
+                $prefillData = [
+                    'client_id' => $subscription->client_id,
+                    'client_name' => $subscription->client->name,
+                    'stripe_subscription_id' => $subscription->stripe_subscription_id,
+                    'trigger_on_payment' => true,
+                    'template_name' => "Abbonamento {$subscription->price->product->name}",
+                    'subtotal' => $subscription->subtotal_amount / 100,
+                    'vat' => $subscription->vat_amount / 100,
+                    'total' => $subscription->total_with_vat / 100,
+                    'items' => [
+                        [
+                            'description' => "Abbonamento {$subscription->price->product->name}",
+                            'quantity' => $subscription->quantity ?? 1,
+                            'unit_price' => $subscription->unit_amount / 100,
+                            'vat_rate' => $subscription->vat_rate ?? 22,
+                            'total' => $subscription->total_with_vat / 100,
+                        ]
+                    ]
+                ];
+            }
+        }
+        
+        // Load all active Stripe subscriptions for clients of this company
+        $subscriptions = Subscription::whereHas('client', function($query) use ($companyId) {
+                $query->where('company_id', $companyId);
+            })
+            ->where('status', 'active')
+            ->with(['client', 'price.product'])
+            ->get()
+            ->map(function ($subscription) {
+                return [
+                    'id' => $subscription->stripe_subscription_id,
+                    'client_id' => $subscription->client_id,
+                    'client_name' => $subscription->client->name ?? 'Cliente sconosciuto',
+                    'name' => $subscription->price->product->name ?? 'Abbonamento',
+                    'amount' => number_format($subscription->total_with_vat / 100, 2, ',', '.'),
+                    'status' => $subscription->status,
+                    'period_end' => $subscription->current_period_end->format('d/m/Y')
+                ];
+            });
 
-        return view('fatture-ricorrenti.nuova', compact('numberings', 'clients', 'paymentMethods'));
+        // Debug: log subscription count
+        \Log::info("Subscriptions loaded for recurring invoice form", [
+            'company_id' => $companyId,
+            'subscriptions_count' => $subscriptions->count(),
+            'sample_subscriptions' => $subscriptions->take(3)->toArray()
+        ]);
+
+        return view('fatture-ricorrenti.nuova', compact('numberings', 'clients', 'paymentMethods', 'subscriptions', 'prefillData'));
     }
 
     /**
@@ -62,6 +125,9 @@ class RecurringInvoiceController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.vat_rate' => 'required|numeric|min:0',
+            // Stripe integration fields
+            'stripe_subscription_id' => 'nullable|string|max:255',
+            'trigger_on_payment' => 'nullable|boolean',
         ]);
 
         // Calculate totals from items
@@ -153,6 +219,9 @@ class RecurringInvoiceController extends Controller
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.vat_rate' => 'required|numeric|min:0',
             'items.*.total' => 'required|numeric|min:0',
+            // Stripe integration fields
+            'stripe_subscription_id' => 'nullable|string|max:255',
+            'trigger_on_payment' => 'nullable|boolean',
         ]);
 
         $recurringInvoice->update($data);
@@ -170,6 +239,38 @@ class RecurringInvoiceController extends Controller
 
         return redirect()->route('fatture-ricorrenti.lista')
             ->with('success', 'Fattura ricorrente aggiornata con successo!');
+    }
+
+    /**
+     * Get Stripe subscriptions for a specific client (AJAX endpoint)
+     */
+    public function getClientSubscriptions(Request $request, $client)
+    {
+        $clientId = $client;
+        $companyId = Auth::user()->current_company_id ?? session('current_company_id');
+        
+        if (!$clientId) {
+            return response()->json([]);
+        }
+
+        $subscriptions = Subscription::where('client_id', $clientId)
+            ->whereHas('client', function($query) use ($companyId) {
+                $query->where('company_id', $companyId);
+            })
+            ->where('status', 'active')
+            ->with(['price.product'])
+            ->get()
+            ->map(function ($subscription) {
+                return [
+                    'id' => $subscription->stripe_subscription_id,
+                    'name' => $subscription->price->product->name ?? 'Abbonamento',
+                    'amount' => number_format($subscription->total_with_vat / 100, 2, ',', '.'),
+                    'status' => $subscription->status,
+                    'period_end' => $subscription->current_period_end->format('d/m/Y')
+                ];
+            });
+
+        return response()->json($subscriptions);
     }
 
     /**
